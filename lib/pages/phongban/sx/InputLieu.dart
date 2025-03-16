@@ -7,135 +7,91 @@ import 'package:mobile_erp/controller/LocalDataAccess.dart';
 import 'package:mobile_erp/pages/LoginPage.dart';
 import 'package:mobile_erp/pages/phongban/sx/InputMaterialList.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:get/get.dart';
 import 'package:moment_dart/moment_dart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:ota_update/ota_update.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
+
 class InputLieu extends StatefulWidget {
   const InputLieu({super.key});
+
   @override
   _InputLieuState createState() => _InputLieuState();
 }
+
 class _InputLieuState extends State<InputLieu> {
-  bool _useScanner = false;
-  String _token = "reset";
-  String _planId = '';
-  String _emplNo = '';
-  String _mLotNo = '';
-  String _mLotNo2 = '';
-  String _machineNo = '';
-  String _mName = '';
-  String _mCode = '';
-  String _mSize = '';
-  String _checkEmplOK = 'NG';
-  String _checkPlanIdOK = 'NG';
-  String _checkMLotNoOK = 'NG';
-  dynamic _planInfo;
-  dynamic _userInfo;
-  final GlobalController c = Get.put(GlobalController());
-  final TextEditingController _controllerPlanId = TextEditingController();
-  final TextEditingController _controllerEmplNo = TextEditingController();
-  final TextEditingController _controllerMLotNo = TextEditingController();
-  final TextEditingController _controllerMachineNo = TextEditingController();
-  Future<String> _getToken() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    final savedToken = prefs.getString('token') ?? 'reset';
-    return savedToken;
+  bool _useScanner = true;
+  String _token = "reset", _planId = '', _emplNo = '', _mLotNo = '', _mLotNo2 = '', _machineNo = '',
+      _mName = '', _mCode = '', _mSize = '', _checkEmplOK = 'NG', _checkPlanIdOK = 'NG', _checkMLotNoOK = 'NG';
+  dynamic _planInfo, _userInfo;
+
+  final c = Get.put(GlobalController());
+  final _controllerPlanId = TextEditingController();
+  final _controllerEmplNo = TextEditingController();
+  final _controllerMLotNo = TextEditingController();
+  final _controllerMachineNo = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final MobileScannerController cameraController = MobileScannerController();
+  String? currentScanType;
+
+  @override
+  void initState() {
+    super.initState();
+    _initLocalData();
+    _getToken().then((value) => setState(() => _token = value));
   }
-  late OtaEvent currentEvent = OtaEvent(OtaStatus.DOWNLOADING, 'Current Status');
-  Future<void> tryOtaUpdate() async {
-    try {
-      //LINK CONTAINS APK OF FLUTTER HELLO WORLD FROM FLUTTER SDK EXAMPLES
-      OtaUpdate()
-          .execute(
-        'http://14.160.33.94:3010/update/cmsflutter.apk',
-        destinationFilename: 'cms.apk',
-        //FOR NOW ANDROID ONLY - ABILITY TO VALIDATE CHECKSUM OF FILE:
-        /* sha256checksum:
-            'd6da28451a1e15cf7a75f2c3f151befad3b80ad0bb232ab15c20897e54f21478', */
-      )
-          .listen(
-        (OtaEvent event) {
-          setState(() => currentEvent = event);
-        },
-      );
-      // ignore: avoid_catches_without_on_clauses
-    } on MissingPluginException {
-      AwesomeDialog(
-        context: context,
-        dialogType: DialogType.error,
-        animType: AnimType.rightSlide,
-        title: 'Lỗi',
-        desc: 'Thiếu pluggin/ Pluggin Missing Exception',
-        btnCancelOnPress: () {},
-        /* btnOkOnPress: () {}, */
-      ).show();
-    } catch (e) {
-      //print('Failed to make OTA update. Details: $e');
+
+  Future<void> _initLocalData() async {
+    final userData = await LocalDataAccess.getVariable('userData');
+    final useCamera = await LocalDataAccess.getVariable('useCamera');
+    setState(() {
+      if (userData.isNotEmpty) {
+        _userInfo = jsonDecode(userData);
+        _emplNo = _userInfo['EMPL_NO'];
+        _controllerEmplNo.text = _emplNo;
+      }
+      _useScanner = useCamera.isNotEmpty;
+    });
+  }
+
+  Future<String> _getToken() async => (await SharedPreferences.getInstance()).getString('token') ?? 'reset';
+
+  Future<void> _apiQuery(String query, Map<String, dynamic> params, Function(dynamic) onSuccess, {String? errorMsg}) async {
+    final value = await API_Request.api_query(query, params);
+    if (value['tk_status'] == 'OK') {
+      onSuccess(value['data'][0]);
+    } else {
+      _showErrorDialog(errorMsg ?? value['message']);
     }
   }
-  Future<void> checkPlanIdInfo(String planId) async {
-    API_Request.api_query('checkPLAN_ID', {
-      'token_string': _token,
-      'PLAN_ID': planId,
-    }).then((value) {
-      setState((() {
-        if (value['tk_status'] == 'OK') {
-          var response = value['data'][0];
-          _machineNo = response['PLAN_EQ'];
-          _controllerMachineNo.text = response['PLAN_EQ'];
+
+  Future<void> checkPlanIdInfo(String planId) async => _apiQuery(
+      'checkPLAN_ID', {'token_string': _token, 'PLAN_ID': planId},
+      (response) {
+        setState(() {
+          _machineNo = _controllerMachineNo.text = response['PLAN_EQ'];
           _planInfo = response;
           _checkPlanIdOK = 'OK';
-        } else {
-          _controllerPlanId.text = '-1';
-          AwesomeDialog(
-            context: context,
-            dialogType: DialogType.error,
-            animType: AnimType.rightSlide,
-            title: 'Thông báo',
-            desc: 'Không có số chỉ thị này / 지시번호 존재하지 않습니다',
-            btnCancelOnPress: () {},
-            /* btnOkOnPress: () {}, */
-          ).show();
-          Get.snackbar('Thông báo', 'Có lỗi: + ${value['message']}',
-              duration: const Duration(seconds: 1));
-        }
-      }));
-    });
-  }
+        });
+      }, errorMsg: 'Không có số chỉ thị này');
+
   Future<void> checkMLotNoInfo(String mLotNo, String planId) async {
-    bool mLotNoExistOutKhoAo = false;
-    bool mLotNoExistInP500 = false;
+    bool mLotNoExistOutKhoAo = false, mLotNoExistInP500 = false;
     String mName = '', mSize = '', mCode = '';
-    await API_Request.api_query('check_xuat_kho_ao_mobile', {
-      'token_string': _token,
-      'PLAN_ID': planId,
-      'M_LOT_NO': mLotNo,
-    }).then((value) {
-      if (value['tk_status'] == 'OK') {
-        var response = value['data'][0];
-        mName = response['M_NAME'].toString();
-        mSize = response['WIDTH_CD'].toString();
-        mCode = response['M_CODE'].toString();
-        mLotNoExistOutKhoAo = true;
-      } else {
-        mLotNoExistOutKhoAo = false;
-      }
-    });
-    await API_Request.api_query('checkM_LOT_NO_p500_mobile', {
-      'token_string': _token,
-      'PLAN_ID': planId,
-      'M_LOT_NO': mLotNo,
-    }).then((value) {
-      if (value['tk_status'] == 'OK') {
-        mLotNoExistInP500 = true;
-      } else {
-        mLotNoExistInP500 = false;
-      }
-    });
+
+    final khoAo = await API_Request.api_query('check_xuat_kho_ao_mobile', {'token_string': _token, 'PLAN_ID': planId, 'M_LOT_NO': mLotNo});
+    if (khoAo['tk_status'] == 'OK') {
+      final response = khoAo['data'][0];
+      mName = response['M_NAME'];
+      mSize = response['WIDTH_CD'];
+      mCode = response['M_CODE'];
+      mLotNoExistOutKhoAo = true;
+    }
+
+    final p500 = await API_Request.api_query('checkM_LOT_NO_p500_mobile', {'token_string': _token, 'PLAN_ID': planId, 'M_LOT_NO': mLotNo});
+    mLotNoExistInP500 = p500['tk_status'] == 'OK';
+
     setState(() {
       _mSize = mSize;
       _mName = mName;
@@ -143,105 +99,41 @@ class _InputLieuState extends State<InputLieu> {
       _mLotNo = mLotNo;
       if (!mLotNoExistOutKhoAo) {
         _controllerMLotNo.text = '-1';
-        AwesomeDialog(
-          context: context,
-          dialogType: DialogType.error,
-          animType: AnimType.rightSlide,
-          title: 'Lỗi',
-          desc:
-              'Lot liệu không đúng hoặc chưa được xuất cho chỉ thị này / LOT No 잘 못 입력하거나 이 지시 번호에 출고 된 Lot No 아닙니다',
-          btnCancelOnPress: () {},
-          /* btnOkOnPress: () {}, */
-        ).show();
+        _showErrorDialog('Lot liệu không đúng hoặc chưa được xuất');
       } else if (mLotNoExistInP500) {
         _controllerMLotNo.text = '-1';
-        AwesomeDialog(
-          context: context,
-          dialogType: DialogType.error,
-          animType: AnimType.rightSlide,
-          title: 'Lỗi',
-          desc:
-              'Lot liệu đã bắn lot cho chỉ thị này rồi /이 LOT 번호가 이미 투입 처리 완료 되었습니다',
-          btnCancelOnPress: () {},
-          /* btnOkOnPress: () {}, */
-        ).show();
-      } else if (mLotNoExistOutKhoAo && !mLotNoExistInP500) {
-        _checkMLotNoOK = 'OK';
-        //Get.snackbar('Thông báo', 'Lot liệu input OK');
-      }
-    });
-  }
-  Future<void> checkEmplNo(String emplNo) async {
-    API_Request.api_query('checkEMPL_NO_mobile', {
-      'token_string': _token,
-      'EMPL_NO': emplNo,
-    }).then((value) => {
-          setState((() {
-            if (value['tk_status'] == 'OK') {
-              var response = value['data'][0];
-              _emplNo = response['EMPL_NO'].toString();
-              _userInfo = response;
-              _checkEmplOK = 'OK';
-            } else {
-              _controllerEmplNo.text = '-1';
-              AwesomeDialog(
-                context: context,
-                dialogType: DialogType.error,
-                animType: AnimType.rightSlide,
-                title: 'Có lỗi',
-                desc: 'Không có nhân viên này / 이 직원 ID가 존재하지 않습니다',
-                btnCancelOnPress: () {},
-                /* btnOkOnPress: () {}, */
-              ).show();
-              Get.snackbar('Thông báo', 'Có lỗi: + ${value['message']}',
-                  duration: const Duration(seconds: 1));
-            }
-          }))
-        });
-  }
-  Future<void> insertP500(String mLotNo, String planId) async {
-    String nextP500InNo = '001';
-    bool insertP500Success = false;
-    String totalOutQty = '', planIdInput = '', inKhoId = '';
-    bool checkPlanIdInput = false;
-    await API_Request.api_query('checkProcessInNoP500', {
-      'token_string': _token,
-    }).then((value) {
-      if (value['tk_status'] == 'OK') {
-        var response = value['data'][0];
-        nextP500InNo = (int.parse(response['PROCESS_IN_NO']) + 1)
-            .toString()
-            .padLeft(3, '0');
+        _showErrorDialog('Lot liệu đã bắn lot cho chỉ thị này');
       } else {
-        nextP500InNo = '001';
+        _checkMLotNoOK = 'OK';
       }
     });
-    await API_Request.api_query('checkOutKhoSX_mobile', {
-      'token_string': _token,
-      'PLAN_ID_OUTPUT': _planId,
-      'M_CODE': _mCode,
-      'M_LOT_NO': mLotNo,
-    }).then((value) {
-      if (value['tk_status'] == 'OK') {
-        var response = value['data'][0];
-        totalOutQty = response['TOTAL_OUT_QTY'].toString();
-        planIdInput = response['PLAN_ID_INPUT'].toString();
-        inKhoId = response['IN_KHO_ID'].toString();
-        checkPlanIdInput = true;
-      } else {}
-    }).catchError((onError) {
-      AwesomeDialog(
-        context: context,
-        dialogType: DialogType.error,
-        animType: AnimType.scale,
-        title: 'Lỗi',
-        desc: '$onError',
-        btnCancelOnPress: () {},
-        /* btnOkOnPress: () {}, */
-      ).show();
-      //print(onError);
+  }
+
+  Future<void> checkEmplNo(String emplNo) async => _apiQuery(
+      'checkEMPL_NO_mobile', {'token_string': _token, 'EMPL_NO': emplNo},
+      (response) => setState(() {
+        _emplNo = response['EMPL_NO'];
+        _userInfo = response;
+        _checkEmplOK = 'OK';
+      }), errorMsg: 'Không có nhân viên này');
+
+  Future<void> insertP500(String mLotNo, String planId) async {
+    String nextP500InNo = '001', totalOutQty = '', planIdInput = '', inKhoId = '';
+    bool checkPlanIdInput = false;
+
+    await _apiQuery('checkProcessInNoP500', {'token_string': _token}, (response) {
+      nextP500InNo = (int.parse(response['PROCESS_IN_NO']) + 1).toString().padLeft(3, '0');
     });
-    await API_Request.api_query('insert_p500_mobile', {
+
+    await _apiQuery('checkOutKhoSX_mobile', {'token_string': _token, 'PLAN_ID_OUTPUT': _planId, 'M_CODE': _mCode, 'M_LOT_NO': mLotNo},
+        (response) {
+      totalOutQty = response['TOTAL_OUT_QTY'];
+      planIdInput = response['PLAN_ID_INPUT'];
+      inKhoId = response['IN_KHO_ID'];
+      checkPlanIdInput = true;
+    });
+
+    final insertResult = await API_Request.api_query('insert_p500_mobile', {
       'token_string': _token,
       'in_date': Moment.now().format('YYYYMMDD'),
       'next_process_in_no': nextP500InNo,
@@ -255,29 +147,14 @@ class _InputLieuState extends State<InputLieu> {
       'M_LOT_NO': mLotNo,
       'INPUT_QTY': totalOutQty,
       'IN_KHO_ID': inKhoId
-    }).then((value) {
-      if (value['tk_status'] == 'OK') {
-        //var response = value['data'][0];
-        insertP500Success = true;
-        AwesomeDialog(
-          context: context,
-          dialogType: DialogType.success,
-          animType: AnimType.rightSlide,
-          title: 'Thông báo',
-          desc: 'Input liệu thành công / 원단 투입 처리 완료 되었습니다',
-          /* btnCancelOnPress: () {}, */
-          btnOkOnPress: () {},
-        ).show();
-        setState(() {
-          _checkEmplOK = 'NG';
-          _checkMLotNoOK = 'NG';
-          _checkPlanIdOK = 'NG';
-        });
-      } else {
-        insertP500Success = false;
-      }
     });
-    if (insertP500Success) {
+
+    if (insertResult['tk_status'] == 'OK') {
+      _showSuccessDialog('Input liệu thành công');
+      setState(() {
+        _checkEmplOK = _checkMLotNoOK = _checkPlanIdOK = 'NG';
+      });
+
       if (checkPlanIdInput) {
         await API_Request.api_query('setUSE_YN_KHO_AO_INPUT_mobile', {
           'token_string': _token,
@@ -287,21 +164,6 @@ class _InputLieuState extends State<InputLieu> {
           'M_LOT_NO': mLotNo,
           'TOTAL_IN_QTY': totalOutQty,
           'USE_YN': 'X',
-        }).then((value) {
-          if (value['tk_status'] == 'OK') {
-            //var response = value['data'][0];
-          } else {}
-        }).catchError((onError) {
-          AwesomeDialog(
-            context: context,
-            dialogType: DialogType.error,
-            animType: AnimType.scale,
-            title: 'Lỗi',
-            desc: '$onError',
-            btnCancelOnPress: () {},
-            /* btnOkOnPress: () {}, */
-          ).show();
-          //print(onError);
         });
         await API_Request.api_query('setUSE_YN_KHO_AO_OUTPUT_mobile', {
           'token_string': _token,
@@ -310,374 +172,176 @@ class _InputLieuState extends State<InputLieu> {
           'M_LOT_NO': mLotNo,
           'TOTAL_OUT_QTY': totalOutQty,
           'USE_YN': 'X',
-        }).then((value) {
-          if (value['tk_status'] == 'OK') {
-            //var response = value['data'][0];
-          } else {}
-        }).catchError((onError) {
-          //print(onError);
         });
-      } else {}
-    } else {}
+      }
+    }
   }
+
   Future<void> insertP500NoCamera() async {
-    await checkEmplNo(_emplNo);
-    await checkPlanIdInfo(_planId);
-    await checkMLotNoInfo(_mLotNo2, _planId);
-    if ((_checkEmplOK == 'OK') &&
-        (_checkMLotNoOK == 'OK') &&
-        (_checkPlanIdOK == 'OK')) {
-      //print('OK');
+    await Future.wait([checkEmplNo(_emplNo), checkPlanIdInfo(_planId), checkMLotNoInfo(_mLotNo2, _planId)]);
+    if (_checkEmplOK == 'OK' && _checkMLotNoOK == 'OK' && _checkPlanIdOK == 'OK') {
       await insertP500(_mLotNo, _planId);
     }
   }
-  @override
-  void initState() {
-    super.initState();
-    //tryOtaUpdate();
-    _controllerEmplNo.text = '';
-    _controllerPlanId.text = '';
-    _controllerMLotNo.text = '';
-    _controllerMachineNo.text = '';
-    LocalDataAccess.getVariable('userData').then(
-      (value) {
-        setState(() {
-          Map<String, dynamic> rawJson = jsonDecode(value);
-          _emplNo = rawJson['EMPL_NO'];
-          _controllerEmplNo.text = rawJson['EMPL_NO'];
-          _userInfo = rawJson;
-        });
-      },
-    );
-    LocalDataAccess.getVariable('useCamera').then(
-      (value) {
-        setState(() {
-          if (value != '') {
-            _useScanner = true;
-          } else {
-            _useScanner = false;
-          }
-          _useScanner = true;
-        });
-      },
-    );
-    _getToken().then((value) => {_token = value});
-  }
-  Future<void> startBarcodeScanStream() async {
-    FlutterBarcodeScanner.getBarcodeStreamReceiver(
-            '#ff6666', 'Cancel', true, ScanMode.BARCODE)!
-        .listen((barcode) {
-      //Get.snackbar('Code', barcode);
-      //print(barcode);
-      //FlutterBeep.beep();    
-    });
-  }
-  Future<void> scanQR() async {
-    String barcodeScanRes;
-    try {
-      barcodeScanRes = await FlutterBarcodeScanner.scanBarcode(
-          '#ff6666', 'Cancel', true, ScanMode.QR);
-      //print(barcodeScanRes);   
-    } on PlatformException {
-      barcodeScanRes = 'Failed to get platform version.';
-    }
-    if (!mounted) return;
-    setState(() {
-            
-    });
-  }
-  Future<void> scanBarcodeNormal(String type) async {
-    String barcodeScanRes;
-    try {
-      barcodeScanRes = await FlutterBarcodeScanner.scanBarcode(
-          '#ff6666', 'Cancel', true, ScanMode.BARCODE);
-      //FlutterBeep.playSysSound(AndroidSoundIDs.TONE_CDMA_ABBR_ALERT);  
-      //print(barcodeScanRes);
-    } on PlatformException {
-      barcodeScanRes = 'Failed to get platform version.';
-    } on MissingPluginException {
-      barcodeScanRes = 'Missing Plugin Exceltion';
-      AwesomeDialog(
-        context: context,
-        dialogType: DialogType.error,
-        animType: AnimType.bottomSlide,
-        title: 'Lỗi',
-        desc: 'Chưa có plugin / Plugin missing',
-        /* btnCancelOnPress: () {}, */
-        btnOkOnPress: () {},
-      ).show();
-    } catch (e) {
-      //print(e.toString());
-      barcodeScanRes = e.toString();
-    }
-    if (!mounted) return;
+
+  void _handleBarcodeScan(BarcodeCapture capture, String type) {
+    final barcode = capture.barcodes.first.rawValue ?? '';
     setState(() {
       if (type == 'PLAN_ID') {
-        _planId = barcodeScanRes;
-        _controllerPlanId.text = barcodeScanRes;
-        checkPlanIdInfo(barcodeScanRes);
-        //Get.snackbar('Thông báo', barcodeScanRes);
+        _planId = _controllerPlanId.text = barcode;
+        checkPlanIdInfo(barcode);
       } else if (type == 'EMPL_NO') {
-        _emplNo = barcodeScanRes;
-        _controllerEmplNo.text = barcodeScanRes;
-        checkEmplNo(barcodeScanRes);
-        //Get.snackbar('Thông báo', barcodeScanRes);
+        _emplNo = _controllerEmplNo.text = barcode;
+        checkEmplNo(barcode);
       } else if (type == 'M_LOT_NO') {
-        _mLotNo = barcodeScanRes;
-        _controllerMLotNo.text = barcodeScanRes;
-        checkMLotNoInfo(barcodeScanRes, _planId);
-        //Get.snackbar('Thông báo', barcodeScanRes);
+        _mLotNo = _controllerMLotNo.text = barcode;
+        checkMLotNoInfo(barcode, _planId);
       } else if (type == 'MACHINE_NO') {
-        _machineNo = barcodeScanRes;
-        if (barcodeScanRes == _planInfo?['PLAN_EQ']) {
-          _controllerMachineNo.text = barcodeScanRes;
-        } else {
-          AwesomeDialog(
-            context: context,
-            dialogType: DialogType.warning,
-            animType: AnimType.rightSlide,
-            title: 'Cảnh báo',
-            desc: 'Máy input khác so với chỉ thị / 지시된 호기와 다릅니다',
-            btnCancelOnPress: () {},
-            /* btnOkOnPress: () {}, */
-          ).show();
-          _controllerMachineNo.text = barcodeScanRes;
+        _machineNo = barcode;
+        _controllerMachineNo.text = barcode;
+        if (barcode != _planInfo?['PLAN_EQ']) {
+          _showWarningDialog('Máy input khác so với chỉ thị');
         }
-        //Get.snackbar('Thông báo', barcodeScanRes);
       }
     });
+    Navigator.pop(context);
   }
-  final _formKey = GlobalKey<FormState>();
-  Color getColor(Set<WidgetState> states) {
-    const Set<WidgetState> interactiveStates = <WidgetState>{
-      WidgetState.pressed,
-      WidgetState.hovered,
-      WidgetState.focused,
-    };
-    if (states.any(interactiveStates.contains)) {
-      return Colors.blue;
-    }
-    return Colors.red;
+
+  void _showScannerDialog(String type) {
+    currentScanType = type;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        content: SizedBox(
+          width: 300,
+          height: 400,
+          child: MobileScanner(
+            controller: cameraController,
+            onDetect: (capture) => _handleBarcodeScan(capture, type),
+          ),
+        ),
+        actions: [
+          IconButton(icon: const Icon(Icons.flash_on), onPressed: () => cameraController.toggleTorch()),
+          IconButton(icon: const Icon(Icons.flip_camera_android), onPressed: () => cameraController.switchCamera()),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        ],
+      ),
+    );
   }
+
+  void _showErrorDialog(String desc) => AwesomeDialog(
+        context: context,
+        dialogType: DialogType.error,
+        animType: AnimType.rightSlide,
+        title: 'Lỗi',
+        desc: desc,
+        btnCancelOnPress: () {},
+      ).show();
+
+  void _showSuccessDialog(String desc) => AwesomeDialog(
+        context: context,
+        dialogType: DialogType.success,
+        animType: AnimType.rightSlide,
+        title: 'Thông báo',
+        desc: desc,
+        btnOkOnPress: () {},
+      ).show();
+
+  void _showWarningDialog(String desc) => AwesomeDialog(
+        context: context,
+        dialogType: DialogType.warning,
+        animType: AnimType.rightSlide,
+        title: 'Cảnh báo',
+        desc: desc,
+        btnCancelOnPress: () {},
+      ).show();
+
+  @override
+  void dispose() {
+    cameraController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.green,
-          title: const Text('CMS VINA: Scan Input Material'),
+      appBar: AppBar(backgroundColor: Colors.green, title: const Text('CMS VINA: Scan Input Material')),
+      body: Container(
+        margin: const EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            children: [
+              _buildTextField("EMPL_NO/사원ID:", "Quét EMPL_NO", _controllerEmplNo, 'EMPL_NO', 7, checkEmplNo),
+              Text('PIC: ${_userInfo?['MIDLAST_NAME'] ?? ''} ${_userInfo?['FIRST_NAME'] ?? ''}',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 30, 7, 233))),
+              _buildTextField("PLAN_ID/지시 번호:", "Quét PLAN_ID", _controllerPlanId, 'PLAN_ID', 8, checkPlanIdInfo),
+              _buildTextField("MACHINE/호기:", "Quét MACHINE", _controllerMachineNo, 'MACHINE_NO', null, null),
+              Text('CODE: ${_planInfo?['G_NAME'] ?? ''} | ${_planInfo?['PLAN_EQ'] ?? ''}',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.green)),
+              _buildTextField("M_LOT_NO:", "Quét M_LOT_NO", _controllerMLotNo, 'M_LOT_NO', 10, (value) => checkMLotNoInfo(value, _planId)),
+              Text('LIỆU: $_mName | SIZE: $_mSize',
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 243, 8, 192))),
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Checkbox(
+                  value: _useScanner,
+                  onChanged: (value) => setState(() {
+                    _useScanner = value!;
+                    LocalDataAccess.saveVariable('useCamera', value ? 'OK' : '');
+                  }),
+                ),
+                const Text('Dùng camera'),
+              ]),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+                ElevatedButton(
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      _useScanner ? null : insertP500NoCamera();
+                      setState(() {
+                        _controllerMLotNo.text = _mLotNo = _mName = _mSize = '';
+                      });
+                    }
+                  },
+                  child: const Text('Input'),
+                ),
+                ElevatedButton(
+                  onPressed: () => AwesomeDialog(
+                    context: context,
+                    dialogType: DialogType.question,
+                    title: 'Cảnh báo',
+                    desc: 'Bạn muốn logout?',
+                    btnCancelOnPress: () {},
+                    btnOkOnPress: () {
+                      GlobalFunction.logout();
+                      Get.off(() => const LoginPage());
+                    },
+                  ).show(),
+                  child: const Text('Back'),
+                ),
+              ]),
+              InputMaterialList(planID: _planId, key: ValueKey(_planId)),
+            ],
+          ),
         ),
-        body: Container(
-            alignment: Alignment.center,
-            margin: const EdgeInsets.all(16),
-            child: ListView(children: <Widget>[
-              Form(
-                key: _formKey,
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: "EMPL_NO/사원ID:",
-                          hintText: "Quét EMPL_NO",
-                        ),
-                        onTap: () {
-                          if (_useScanner) {
-                            scanBarcodeNormal("EMPL_NO");
-                          }
-                        },
-                        validator: (value) {
-                          if (value == null ||
-                              value.isEmpty ||
-                              value.toString() == '-1') {
-                            return 'Phải quét mã vạch/ 바코드 스캔해야 합니다';
-                          }
-                          return null;
-                        },
-                        controller: _controllerEmplNo,
-                        onChanged: (value) {
-                          //Get.snackbar('Thông báo', value);
-                          setState(() {
-                            _emplNo = value;
-                            if (value.length >= 7) {
-                              checkEmplNo(value);
-                            }
-                          });
-                        },
-                      ),
-                      Text(
-                        'PIC: ${_userInfo?['MIDLAST_NAME'].toString() ?? ''} ${_userInfo?['FIRST_NAME'].toString() ?? ''}',
-                        style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Color.fromARGB(255, 30, 7, 233)),
-                      ),
-                      TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: "PLAN_ID/지시 번호:",
-                          hintText: "Quét PLAN_ID",
-                        ),
-                        onTap: () {
-                          if (_useScanner) scanBarcodeNormal("PLAN_ID");
-                        },
-                        // The validator receives the text that the user has entered.
-                        validator: (value) {
-                          if (value == null ||
-                              value.isEmpty ||
-                              value.toString() == '-1') {
-                            return 'Phải quét mã vạch/ 바코드 스캔해야 합니다';
-                          }
-                          return null;
-                        },
-                        controller: _controllerPlanId,
-                        onChanged: (value) {
-                          //Get.snackbar('Thông báo', value);
-                          setState(() {
-                            _planId = value;
-                            if (value.length == 8) {
-                              checkPlanIdInfo(value);
-                            }
-                          });
-                        },
-                      ),
-                      TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: "MACHINE/호기:",
-                          hintText: "Quét MACHINE",
-                        ),
-                        onTap: () {
-                          if (_useScanner) scanBarcodeNormal("MACHINE_NO");
-                        },
-                        // The validator receives the text that the user has entered.
-                        validator: (value) {
-                          if (value == null ||
-                              value.isEmpty ||
-                              value.toString() == '-1') {
-                            return 'Phải quét mã vạch/ 바코드 스캔해야 합니다';
-                          }
-                          return null;
-                        },
-                        controller: _controllerMachineNo,
-                        onChanged: (value) {
-                          //Get.snackbar('Thông báo', value);
-                          setState(() {
-                            _machineNo = value;
-                          });
-                        },
-                      ),
-                      Text(
-                        'CODE: ${_planInfo?['G_NAME'].toString() ?? ''} | ${_planInfo?['PLAN_EQ'].toString() ?? ''}',
-                        style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green),
-                      ),
-                      TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: "M_LOT_NO:",
-                          hintText: "Quét M_LOT_NO",
-                        ),
-                        onTap: () {
-                          if (_useScanner) scanBarcodeNormal("M_LOT_NO");
-                        },
-                        // The validator receives the text that the user has entered.
-                        validator: (value) {
-                          if (value == null ||
-                              value.isEmpty ||
-                              value.toString() == '-1') {
-                            return 'Phải quét mã vạch/ 바코드 스캔해야 합니다';
-                          }
-                          return null;
-                        },
-                        controller: _controllerMLotNo,
-                        onChanged: (value) {
-                          //Get.snackbar('Thông báo', value);
-                          setState(() {
-                            _mLotNo = value;
-                            _mLotNo2 = value;
-                            if (value.length == 10) {
-                              checkMLotNoInfo(value, _planId);
-                            }
-                          });
-                        },
-                      ),
-                      Text(
-                        'LIỆU: $_mName | SIZE: $_mSize',
-                        style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Color.fromARGB(255, 243, 8, 192)),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Checkbox(
-                            checkColor: Colors.green,
-                            fillColor:
-                                WidgetStateProperty.resolveWith(getColor),
-                            value: _useScanner,
-                            onChanged: (bool? value) {
-                              setState(() {
-                                _useScanner = value!;
-                                if (value == true) {
-                                  LocalDataAccess.saveVariable(
-                                      'useCamera', 'OK');
-                                } else {
-                                  LocalDataAccess.saveVariable('useCamera', '');
-                                }
-                              });
-                            },
-                          ),
-                          const Text('Dùng camera')
-                        ],
-                      ),
-                      const SizedBox(
-                        width: 10,
-                        height: 20,
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          ElevatedButton(
-                              onPressed: () {
-                                if (_formKey.currentState!.validate()) {
-                                  if (_useScanner) {
-                                    //insertP500(_mLotNo, _planId);
-                                  } else {
-                                    insertP500NoCamera();
-                                  }
-                                  setState(() {
-                                    _controllerMLotNo.text = '';
-                                    _mLotNo = '';
-                                    _mName = '';
-                                    _mSize = '';
-                                  });
-                                }
-                              },
-                              child: const Text('Input')),
-                          ElevatedButton(
-                              onPressed: () {
-                                AwesomeDialog(
-                                  context: context,
-                                  dialogType: DialogType.question,
-                                  animType: AnimType.rightSlide,
-                                  title: 'Cảnh báo',
-                                  desc: 'Bạn muốn logout? / Logout 하시겠습니까?',
-                                  btnCancelOnPress: () {},
-                                  btnOkOnPress: () {
-                                    GlobalFunction.logout();
-                                    Get.off(() => const LoginPage());
-                                  },
-                                ).show();
-                              },
-                              child: const Text('Back')),
-                        ],
-                      ),
-                      InputMaterialList(
-                          planID: _planId, key: ValueKey(_planId)),
-                      /* Text(
-                          'OTA status: ${currentEvent.status} : ${currentEvent.value} \n'), */
-                    ]),
-              ),
-            ])));
+      ),
+    );
+  }
+
+  Widget _buildTextField(String label, String hint, TextEditingController controller, String type, int? checkLength, Function(String)? onCheck) {
+    return TextFormField(
+      decoration: InputDecoration(labelText: label, hintText: hint),
+      controller: controller,
+      onTap: () => _useScanner ? _showScannerDialog(type) : null,
+      validator: (value) => (value == null || value.isEmpty || value == '-1') ? 'Phải quét mã vạch' : null,
+      onChanged: (value) {
+        setState(() {
+          if (type == 'PLAN_ID') _planId = value;
+          else if (type == 'EMPL_NO') _emplNo = value;
+          else if (type == 'M_LOT_NO') _mLotNo = _mLotNo2 = value;
+          else if (type == 'MACHINE_NO') _machineNo = value;
+          if (checkLength != null && value.length == checkLength && onCheck != null) onCheck(value);
+        });
+      },
+    );
   }
 }

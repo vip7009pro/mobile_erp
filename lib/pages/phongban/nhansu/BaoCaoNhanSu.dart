@@ -210,7 +210,7 @@ final searchBar = Container(
           ),
         ],
         tooltipBehavior: TooltipBehavior(enable: true),
-        series: <ChartSeries>[
+        series: <CartesianSeries>[
           StackedColumnSeries<DiemDanhNhomDataSummary, DateTime>(
               name: 'ON',
               color: Colors.blueAccent,

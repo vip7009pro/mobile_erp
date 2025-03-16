@@ -162,9 +162,8 @@ class _PoDetailState extends State<PoDetail> {
                           _loadCodeList(value);
                         },
                       ),
-                      DropdownSearch<CodeListData>(
-                        asyncItems: (filter) => getData(filter),
-                        items: _codeList,
+                      DropdownSearch<CodeListData>(                       
+                        items:  (filter, infiniteScrollProps) => _codeList,
                         itemAsString: (CodeListData u) =>
                             '${u.gCODE!}_${u.gNAME!}',
                         onChanged: (CodeListData? data) {
@@ -175,12 +174,12 @@ class _PoDetailState extends State<PoDetail> {
                                 (data?.pRODLASTPRICE ?? 0).toString();
                           });
                         },
-                        dropdownDecoratorProps: const DropDownDecoratorProps(
-                          dropdownSearchDecoration: InputDecoration(
-                              labelText: "G_CODE",
-                              filled: true,
-                              fillColor: Color.fromARGB(255, 216, 237, 240)),
-                        ),
+                         decoratorProps: DropDownDecoratorProps(
+                              decoration: InputDecoration(
+                                labelText: 'Chọn Code',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
                       ),
                       TextFormField(
                         readOnly: true,
@@ -209,7 +208,7 @@ class _PoDetailState extends State<PoDetail> {
                         },
                       ),
                       DropdownSearch<CustomerListData>(
-                        items: _filteredCustomerList,
+                        items:  (filter, infiniteScrollProps) => _filteredCustomerList,
                         itemAsString: (CustomerListData u) =>
                             '${u.cUSTCD!}_${u.cUSTNAMEKD!}',
                         onChanged: (CustomerListData? data) {
@@ -218,12 +217,12 @@ class _PoDetailState extends State<PoDetail> {
                             _poCUST_NAME_KD.text = data?.cUSTNAMEKD ?? '';
                           });
                         },
-                        dropdownDecoratorProps: const DropDownDecoratorProps(
-                          dropdownSearchDecoration: InputDecoration(
-                              labelText: "CUST_CD",
-                              filled: true,
-                              fillColor: Color.fromARGB(255, 216, 237, 240)),
-                        ),
+                        decoratorProps: DropDownDecoratorProps(
+                              decoration: InputDecoration(
+                                labelText: 'Chọn Khách hàng',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
                       ),
                       TextFormField(
                         readOnly: true,

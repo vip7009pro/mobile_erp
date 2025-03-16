@@ -15,6 +15,7 @@ class EmployeeInfoScreen extends StatefulWidget {
   @override
   _EmployeeInfoScreenState createState() => _EmployeeInfoScreenState();
 }
+
 class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
   File? _selectedFile;
   List<WORKPOSITIONDATA> listWorkPosition_org = List.empty();
@@ -33,30 +34,43 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
   final TextEditingController _user_ADD_COMMUNE_ctrl = TextEditingController();
   final TextEditingController _user_ADD_VILLAGE_ctrl = TextEditingController();
   final TextEditingController _user_PHONE_NUMBER_ctrl = TextEditingController();
-  final TextEditingController _user_WORK_START_DATE_ctrl = TextEditingController();
-  final TextEditingController _user_WORK_END_DATE_ctrl = TextEditingController();
+  final TextEditingController _user_WORK_START_DATE_ctrl =
+      TextEditingController();
+  final TextEditingController _user_WORK_END_DATE_ctrl =
+      TextEditingController();
   final TextEditingController _user_PASSWORD_ctrl = TextEditingController();
   final TextEditingController _user_EMAIL_ctrl = TextEditingController();
-  final TextEditingController _user_WORK_POSITION_CODE_ctrl = TextEditingController();
-  final TextEditingController _user_WORK_SHIFT_CODE_ctrl = TextEditingController();
-  final TextEditingController _user_POSITION_CODE_ctrl = TextEditingController();
+  final TextEditingController _user_WORK_POSITION_CODE_ctrl =
+      TextEditingController();
+  final TextEditingController _user_WORK_SHIFT_CODE_ctrl =
+      TextEditingController();
+  final TextEditingController _user_POSITION_CODE_ctrl =
+      TextEditingController();
   final TextEditingController _user_JOB_CODE_ctrl = TextEditingController();
   final TextEditingController _user_FACTORY_CODE_ctrl = TextEditingController();
-  final TextEditingController _user_WORK_STATUS_CODE_ctrl = TextEditingController();
+  final TextEditingController _user_WORK_STATUS_CODE_ctrl =
+      TextEditingController();
   String userWorkPositionName = "Rau má";
   List<String> listPosition = ['Manager', 'AM', 'Senior', 'Staff', 'NoPos'];
   List<String> listWorkStatus = ['Đã nghỉ', 'Đang làm', 'Nghỉ sinh'];
 
   Future<void> _selectFile() async {
     try {
-      final XFile? file = await ImagePicker().pickImage(source: ImageSource.camera,imageQuality: 100, preferredCameraDevice: CameraDevice.rear);      
+      final XFile? file = await ImagePicker().pickImage(
+        source: ImageSource.camera,
+        imageQuality: 100,
+        preferredCameraDevice: CameraDevice.rear,
+      );
       if (file != null) {
         setState(() {
           _selectedFile = File(file.path);
-          if(_selectedFile != null) {
-            API_Request.api_upload_query(_selectedFile!, 'NS_${_user_EMPL_NO_ctrl.text}.jpg', 'Picture_NS');
-          }
-          else {
+          if (_selectedFile != null) {
+            API_Request.api_upload_query(
+              _selectedFile!,
+              'NS_${_user_EMPL_NO_ctrl.text}.jpg',
+              'Picture_NS',
+            );
+          } else {
             print('Chưa chọn file');
           }
         });
@@ -66,20 +80,21 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
     }
   }
 
-
   Future<void> _loadWorkPosition() async {
     await API_Request.api_query('workpositionlist', {}).then((value) {
       if (value['tk_status'] == 'OK') {
         List<dynamic> dynamicList = value['data'];
         setState(() {
-          listWorkPosition_org = dynamicList.map((dynamic item) {
-            return WORKPOSITIONDATA.fromJson(item);
-          }).toList();
+          listWorkPosition_org =
+              dynamicList.map((dynamic item) {
+                return WORKPOSITIONDATA.fromJson(item);
+              }).toList();
           init();
         });
       } else {}
     });
   }
+
   Future<void> _updateEmployeeInfo() async {
     await API_Request.api_query('updateemployee', {
       'NV_CCID': _user_NV_CCID_ctrl.text,
@@ -127,6 +142,7 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
       }
     });
   }
+
   Future<void> _addEmployeeInfo() async {
     await API_Request.api_query('insertemployee', {
       'NV_CCID': _user_NV_CCID_ctrl.text,
@@ -174,13 +190,20 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
       }
     });
   }
+
   void init() {
-    _user_DOB_ctrl.text =
-        GlobalFunction.MyDate('yyyy-MM-dd', widget.userData.dOB.toString());
-    _user_WORK_START_DATE_ctrl.text = GlobalFunction.MyDate('yyyy-MM-dd',
-        (widget.userData.wORKSTARTDATE ?? "1900-01-01").toString());
+    _user_DOB_ctrl.text = GlobalFunction.MyDate(
+      'yyyy-MM-dd',
+      widget.userData.dOB.toString(),
+    );
+    _user_WORK_START_DATE_ctrl.text = GlobalFunction.MyDate(
+      'yyyy-MM-dd',
+      (widget.userData.wORKSTARTDATE ?? "1900-01-01").toString(),
+    );
     _user_WORK_END_DATE_ctrl.text = GlobalFunction.MyDate(
-        'yyyy-MM-dd', (widget.userData.rESIGNDATE ?? "1900-01-01").toString());
+      'yyyy-MM-dd',
+      (widget.userData.rESIGNDATE ?? "1900-01-01").toString(),
+    );
     _user_SEX_CODE_ctrl.text = widget.userData.sEXCODE.toString();
     _user_FACTORY_CODE_ctrl.text = widget.userData.fACTORYCODE.toString();
     _user_WORK_POSITION_CODE_ctrl.text =
@@ -203,21 +226,28 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
     _user_JOB_CODE_ctrl.text = widget.userData.jOBCODE.toString();
     _user_WORK_STATUS_CODE_ctrl.text =
         widget.userData.wORKSTATUSCODE.toString();
-    List<WORKPOSITIONDATA> tempWorkPositionList = listWorkPosition_org
-        .where((e) =>
-            e.wORKPOSITIONCODE.toString() ==
-            widget.userData.wORKPOSITIONCODE.toString())
-        .toList();
-    userWorkPositionName = (tempWorkPositionList.isNotEmpty
-        ? tempWorkPositionList[0].wORKPOSITIONNAME
-        : "Đậu xanh")!;
+    List<WORKPOSITIONDATA> tempWorkPositionList =
+        listWorkPosition_org
+            .where(
+              (e) =>
+                  e.wORKPOSITIONCODE.toString() ==
+                  widget.userData.wORKPOSITIONCODE.toString(),
+            )
+            .toList();
+    userWorkPositionName =
+        (tempWorkPositionList.isNotEmpty
+            ? tempWorkPositionList[0].wORKPOSITIONNAME
+            : "Đậu xanh")!;
   }
+
+  final dropDownKeyFactory = GlobalKey<DropdownSearchState>();
   @override
   void initState() {
     // TODO: implement initState
     _loadWorkPosition();
     super.initState();
   }
+
   @override
   Widget build(BuildContext context) {
     final avatar = GestureDetector(
@@ -228,47 +258,46 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
         width: 150,
         height: 390,
         decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10.0),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2), // Shadow color
-                spreadRadius: 3, // Spread radius
-                blurRadius: 10, // Blur radius
-                offset: const Offset(0, 3), // Offset in the x, y direction
-              )
-            ],
-            image: DecorationImage(
-                image: NetworkImage(
-                    'http://14.160.33.94/Picture_NS/NS_${widget.userData.eMPLNO}.jpg'),
-                fit: BoxFit.cover)),
-                
+          borderRadius: BorderRadius.circular(10.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2), // Shadow color
+              spreadRadius: 3, // Spread radius
+              blurRadius: 10, // Blur radius
+              offset: const Offset(0, 3), // Offset in the x, y direction
+            ),
+          ],
+          image: DecorationImage(
+            image: NetworkImage(
+              'http://14.160.33.94/Picture_NS/NS_${widget.userData.eMPLNO}.jpg',
+            ),
+            fit: BoxFit.cover,
+          ),
+        ),
       ),
     );
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-            title: const Row(
-              children: [
-                Icon(Icons.person),
-                Text(
-                  "Thông tin nhân viên",
-                ),
-              ],
-            ),
-            backgroundColor: Colors.transparent,
-            flexibleSpace: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                    colors: [
-                      Color.fromARGB(0, 133, 196, 248),
-                      Color.fromARGB(0, 0, 140, 255),
-                    ],
-                    begin: FractionalOffset(0.0, 0.0),
-                    end: FractionalOffset(1.0, 0.0),
-                    stops: [0.0, 1.0],
-                    tileMode: TileMode.clamp),
+          title: const Row(
+            children: [Icon(Icons.person), Text("Thông tin nhân viên")],
+          ),
+          backgroundColor: Colors.transparent,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color.fromARGB(0, 133, 196, 248),
+                  Color.fromARGB(0, 0, 140, 255),
+                ],
+                begin: FractionalOffset(0.0, 0.0),
+                end: FractionalOffset(1.0, 0.0),
+                stops: [0.0, 1.0],
+                tileMode: TileMode.clamp,
               ),
-            )),
+            ),
+          ),
+        ),
         body: Container(
           padding: const EdgeInsets.all(10),
           child: Column(
@@ -289,13 +318,15 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
                             controller: _user_EMPL_NO_ctrl,
                           ),
                           TextFormField(
-                            decoration:
-                                const InputDecoration(labelText: 'CMS ID'),
+                            decoration: const InputDecoration(
+                              labelText: 'CMS ID',
+                            ),
                             controller: _user_CMS_ID_ctrl,
                           ),
                           TextFormField(
-                            decoration:
-                                const InputDecoration(labelText: 'Mã chấm công'),
+                            decoration: const InputDecoration(
+                              labelText: 'Mã chấm công',
+                            ),
                             controller: _user_NV_CCID_ctrl,
                           ),
                           TextFormField(
@@ -303,30 +334,36 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
                             controller: _user_FIRST_NAME_ctrl,
                           ),
                           TextFormField(
-                            decoration:
-                                const InputDecoration(labelText: 'Họ và đệm'),
+                            decoration: const InputDecoration(
+                              labelText: 'Họ và đệm',
+                            ),
                             controller: _user_MIDLAST_NAME_ctrl,
                           ),
                           TextFormField(
                             readOnly: true,
                             controller: _user_DOB_ctrl,
                             decoration: const InputDecoration(
-                                labelText: 'Ngày tháng năm sinh'),
+                              labelText: 'Ngày tháng năm sinh',
+                            ),
                             onTap: () async {
                               DateTime? pickedDate = await showDatePicker(
                                 context: context,
                                 initialDate: DateTime.parse(
-                                    widget.userData.dOB ?? "1900-01-01"),
+                                  widget.userData.dOB ?? "1900-01-01",
+                                ),
                                 firstDate: DateTime(1900),
                                 lastDate: DateTime(2101),
                               );
                               if (pickedDate != null &&
                                   pickedDate !=
                                       DateTime.parse(
-                                          widget.userData.dOB ?? "1900-01-01")) {
+                                        widget.userData.dOB ?? "1900-01-01",
+                                      )) {
                                 setState(() {
                                   _user_DOB_ctrl.text = GlobalFunction.MyDate(
-                                      'yyyy-MM-dd', pickedDate.toString());
+                                    'yyyy-MM-dd',
+                                    pickedDate.toString(),
+                                  );
                                 });
                               }
                             },
@@ -334,26 +371,30 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
                           TextFormField(
                             readOnly: true,
                             controller: _user_WORK_START_DATE_ctrl,
-                            decoration:
-                                const InputDecoration(labelText: 'Ngày vào cty'),
+                            decoration: const InputDecoration(
+                              labelText: 'Ngày vào cty',
+                            ),
                             onTap: () async {
                               DateTime? pickedDate = await showDatePicker(
                                 context: context,
                                 initialDate: DateTime.parse(
-                                    widget.userData.wORKSTARTDATE ??
-                                        "1900-01-01"),
+                                  widget.userData.wORKSTARTDATE ?? "1900-01-01",
+                                ),
                                 firstDate: DateTime(1900),
                                 lastDate: DateTime(2101),
                               );
                               if (pickedDate != null &&
                                   pickedDate !=
                                       DateTime.parse(
-                                          widget.userData.wORKSTARTDATE ??
-                                              "1900-01-01")) {
+                                        widget.userData.wORKSTARTDATE ??
+                                            "1900-01-01",
+                                      )) {
                                 setState(() {
-                                  _user_WORK_START_DATE_ctrl.text =
-                                      GlobalFunction.MyDate(
-                                          'yyyy-MM-dd', pickedDate.toString());
+                                  _user_WORK_START_DATE_ctrl
+                                      .text = GlobalFunction.MyDate(
+                                    'yyyy-MM-dd',
+                                    pickedDate.toString(),
+                                  );
                                 });
                               }
                             },
@@ -361,49 +402,58 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
                           TextFormField(
                             readOnly: true,
                             controller: _user_WORK_END_DATE_ctrl,
-                            decoration:
-                                const InputDecoration(labelText: 'Ngày nghỉ'),
+                            decoration: const InputDecoration(
+                              labelText: 'Ngày nghỉ',
+                            ),
                             onTap: () async {
                               DateTime? pickedDate = await showDatePicker(
                                 context: context,
                                 initialDate: DateTime.parse(
-                                    widget.userData.rESIGNDATE ?? "1900-01-01"),
+                                  widget.userData.rESIGNDATE ?? "1900-01-01",
+                                ),
                                 firstDate: DateTime(1900),
                                 lastDate: DateTime(2101),
                               );
                               if (pickedDate != null &&
                                   pickedDate !=
-                                      DateTime.parse(widget.userData.rESIGNDATE ??
-                                          "1900-01-01")) {
+                                      DateTime.parse(
+                                        widget.userData.rESIGNDATE ??
+                                            "1900-01-01",
+                                      )) {
                                 setState(() {
-                                  _user_WORK_END_DATE_ctrl.text =
-                                      GlobalFunction.MyDate(
-                                          'yyyy-MM-dd', pickedDate.toString());
+                                  _user_WORK_END_DATE_ctrl
+                                      .text = GlobalFunction.MyDate(
+                                    'yyyy-MM-dd',
+                                    pickedDate.toString(),
+                                  );
                                 });
                               }
                             },
                           ),
                           TextFormField(
-                            decoration:
-                                const InputDecoration(labelText: 'Quê quán'),
+                            decoration: const InputDecoration(
+                              labelText: 'Quê quán',
+                            ),
                             controller: _user_HOMETOWN_ctrl,
                           ),
                           TextFormField(
                             decoration: const InputDecoration(
-                                labelText: 'Tỉnh/thành phố'),
+                              labelText: 'Tỉnh/thành phố',
+                            ),
                             controller: _user_ADD_PROVINCE_ctrl,
                           ),
                           DropdownSearch<String>(
                             popupProps: const PopupProps.menu(
                               showSelectedItems: true,
                             ),
-                            items: listWorkPosition_org
-                                .map((e) => e.wORKPOSITIONNAME ?? "")
-                                .toList(),
-                            dropdownDecoratorProps: const DropDownDecoratorProps(
-                              dropdownSearchDecoration: InputDecoration(
-                                labelText: "Vị trí làm việc",
-                                hintText: "Chọn vị trí",
+                            items: (filter, infiniteScrollProps) =>
+                                listWorkPosition_org
+                                    .map((e) => e.wORKPOSITIONNAME ?? "")
+                                    .toList(),
+                             decoratorProps: DropDownDecoratorProps(
+                              decoration: InputDecoration(
+                                labelText: 'Chọn vị trí làm việc',
+                                border: OutlineInputBorder(),
                               ),
                             ),
                             onChanged: (value) {
@@ -413,123 +463,151 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
                                       .toList();
                               _user_WORK_POSITION_CODE_ctrl.text =
                                   (tempWorkPositionList.isNotEmpty
-                                      ? tempWorkPositionList[0]
-                                          .wORKPOSITIONCODE
+                                      ? tempWorkPositionList[0].wORKPOSITIONCODE
                                           .toString()
                                       : "Đậu xanh");
                             },
                             selectedItem: userWorkPositionName,
                           ),
                           DropdownSearch<String>(
-                            popupProps: const PopupProps.menu(
-                              showSelectedItems: true,
-                            ),
-                            items: const ['NM1', 'NM2'],
-                            dropdownDecoratorProps: const DropDownDecoratorProps(
-                              dropdownSearchDecoration: InputDecoration(
-                                labelText: "Nhà máy",
-                                hintText: "Chọn nhà máy",
-                              ),
-                            ),
+                            key: dropDownKeyFactory,
+                            selectedItem:
+                                _user_FACTORY_CODE_ctrl.text == '1'
+                                    ? 'NM1'
+                                    : 'NM2',
+                            items:
+                                (filter, infiniteScrollProps) => ["NM1", "NM2"],
                             onChanged: (value) {
                               _user_FACTORY_CODE_ctrl.text =
                                   value == 'NM1' ? '1' : '2';
                             },
-                            selectedItem: _user_FACTORY_CODE_ctrl.text == '1'
-                                ? 'NM1'
-                                : 'NM2',
-                          ),
-                          DropdownSearch<String>(
-                            popupProps: const PopupProps.menu(
-                              showSelectedItems: true,
-                            ),
-                            items: const ['TEAM 1', 'TEAM 2', 'Hành Chính'],
-                            dropdownDecoratorProps: const DropDownDecoratorProps(
-                              dropdownSearchDecoration: InputDecoration(
-                                labelText: "Team",
-                                hintText: "Chọn Team",
+                            decoratorProps: DropDownDecoratorProps(
+                              decoration: InputDecoration(
+                                labelText: 'Chọn nhà máy',
+                                border: OutlineInputBorder(),
                               ),
                             ),
+                            popupProps: PopupProps.menu(
+                              fit: FlexFit.loose,
+                              constraints: BoxConstraints(),
+                            ),
+                          ),
+                          DropdownSearch<String>(
+                            key: dropDownKeyFactory,
+
+                            items:
+                                (filter, infiniteScrollProps) => [
+                                  'TEAM 1',
+                                  'TEAM 2',
+                                  'Hành Chính',
+                                ],
+
                             onChanged: (value) {
-                              _user_WORK_SHIFT_CODE_ctrl.text = value == 'TEAM 1'
-                                  ? '1'
-                                  : value == 'TEAM 2'
+                              _user_WORK_SHIFT_CODE_ctrl.text =
+                                  value == 'TEAM 1'
+                                      ? '1'
+                                      : value == 'TEAM 2'
                                       ? '2'
                                       : '0';
                             },
-                            selectedItem: _user_WORK_SHIFT_CODE_ctrl.text == '1'
-                                ? 'TEAM 1'
-                                : _user_WORK_SHIFT_CODE_ctrl.text == '2'
+                            selectedItem:
+                                _user_WORK_SHIFT_CODE_ctrl.text == '1'
+                                    ? 'TEAM 1'
+                                    : _user_WORK_SHIFT_CODE_ctrl.text == '2'
                                     ? 'TEAM 2'
                                     : 'Hành Chính',
-                          ),
+                            decoratorProps: DropDownDecoratorProps(
+                              decoration: InputDecoration(
+                                labelText: 'Chọn team',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                            popupProps: PopupProps.menu(
+                              fit: FlexFit.loose,
+                              constraints: BoxConstraints(),
+                            ),
+                          ),                          
                           DropdownSearch<String>(
                             popupProps: const PopupProps.menu(
                               showSelectedItems: true,
                             ),
-                            items: listPosition,
-                            dropdownDecoratorProps: const DropDownDecoratorProps(
-                              dropdownSearchDecoration: InputDecoration(
-                                labelText: "Position",
-                                hintText: "Chọn Position",
+                            items: (filter, infiniteScrollProps) => listPosition,
+                            decoratorProps: DropDownDecoratorProps(
+                              decoration: InputDecoration(
+                                labelText: 'Chọn position',
+                                border: OutlineInputBorder(),
                               ),
                             ),
                             onChanged: (value) {
                               _user_POSITION_CODE_ctrl.text =
                                   listPosition.indexOf(value ?? '').toString();
                             },
-                            selectedItem: listPosition[int.parse(
-                                _user_POSITION_CODE_ctrl.text != ''
-                                    ? _user_POSITION_CODE_ctrl.text
-                                    : '0')],
+                            selectedItem:
+                                listPosition[int.parse(
+                                  _user_POSITION_CODE_ctrl.text != ''
+                                      ? _user_POSITION_CODE_ctrl.text
+                                      : '0',
+                                )],
                           ),
                           TextFormField(
-                            decoration:
-                                const InputDecoration(labelText: 'Quận huyện'),
+                            decoration: const InputDecoration(
+                              labelText: 'Quận huyện',
+                            ),
                             controller: _user_ADD_DISTRICT_ctrl,
                           ),
                           TextFormField(
-                            decoration:
-                                const InputDecoration(labelText: 'Xã/Thị trấn'),
+                            decoration: const InputDecoration(
+                              labelText: 'Xã/Thị trấn',
+                            ),
                             controller: _user_ADD_COMMUNE_ctrl,
                           ),
                           TextFormField(
-                            decoration:
-                                const InputDecoration(labelText: 'Thôn/xóm'),
+                            decoration: const InputDecoration(
+                              labelText: 'Thôn/xóm',
+                            ),
                             controller: _user_ADD_VILLAGE_ctrl,
                           ),
                           TextFormField(
-                            decoration: const InputDecoration(labelText: 'Số ĐT'),
+                            decoration: const InputDecoration(
+                              labelText: 'Số ĐT',
+                            ),
                             controller: _user_PHONE_NUMBER_ctrl,
                           ),
                           TextFormField(
-                            decoration:
-                                const InputDecoration(labelText: 'PASSWORD'),
+                            decoration: const InputDecoration(
+                              labelText: 'PASSWORD',
+                            ),
                             controller: _user_PASSWORD_ctrl,
                           ),
                           TextFormField(
-                            decoration: const InputDecoration(labelText: 'EMAIL'),
+                            decoration: const InputDecoration(
+                              labelText: 'EMAIL',
+                            ),
                             controller: _user_EMAIL_ctrl,
                           ),
                           DropdownSearch<String>(
                             popupProps: const PopupProps.menu(
                               showSelectedItems: true,
                             ),
-                            items: listWorkStatus,
-                            dropdownDecoratorProps: const DropDownDecoratorProps(
-                              dropdownSearchDecoration: InputDecoration(
-                                labelText: "Trạng thái làm việc",
-                                hintText: "Chọn trạng thái làm việc",
+                            items: (filter, infiniteScrollProps) => listWorkStatus,
+                           decoratorProps: DropDownDecoratorProps(
+                              decoration: InputDecoration(
+                                labelText: 'Chọn work status',
+                                border: OutlineInputBorder(),
                               ),
                             ),
                             onChanged: (value) {
                               _user_WORK_STATUS_CODE_ctrl.text =
-                                  listWorkStatus.indexOf(value ?? '').toString();
+                                  listWorkStatus
+                                      .indexOf(value ?? '')
+                                      .toString();
                             },
-                            selectedItem: listWorkStatus[int.parse(
-                                _user_WORK_STATUS_CODE_ctrl.text != ''
-                                    ? _user_WORK_STATUS_CODE_ctrl.text
-                                    : '0')],
+                            selectedItem:
+                                listWorkStatus[int.parse(
+                                  _user_WORK_STATUS_CODE_ctrl.text != ''
+                                      ? _user_WORK_STATUS_CODE_ctrl.text
+                                      : '0',
+                                )],
                           ),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -541,7 +619,8 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
                                     dialogType: DialogType.question,
                                     animType: AnimType.rightSlide,
                                     title: 'Cảnh báo',
-                                    desc: 'Bạn muốn update thông tin nhân viên?',
+                                    desc:
+                                        'Bạn muốn update thông tin nhân viên?',
                                     btnCancelOnPress: () {},
                                     btnOkOnPress: () {
                                       _updateEmployeeInfo();
@@ -552,7 +631,7 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
                               ),
                               const SizedBox(width: 16),
                               ElevatedButton(
-                                onPressed: () {                                   
+                                onPressed: () {
                                   AwesomeDialog(
                                     context: context,
                                     dialogType: DialogType.question,
@@ -564,7 +643,6 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
                                       _addEmployeeInfo();
                                     },
                                   ).show();
-                                  
                                 },
                                 child: const Text('Add New'),
                               ),
