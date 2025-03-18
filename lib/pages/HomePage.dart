@@ -13,8 +13,6 @@ import 'package:mobile_erp/pages/phongban/nhansu/DieuChuyenTeam.dart';
 import 'package:mobile_erp/pages/phongban/nhansu/LichSuDiLamList.dart';
 import 'package:mobile_erp/pages/phongban/nhansu/PheDuyetNghi.dart';
 import 'package:mobile_erp/pages/phongban/nhansu/QuanLyPhongBanNhanSu.dart';
-import 'package:mobile_erp/pages/phongban/sx/BarcodeScanner.dart';
-import 'package:mobile_erp/pages/phongban/sx/BarcodeScanner2.dart';
 import 'package:mobile_erp/pages/phongban/sx/InputLieu.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -569,7 +567,7 @@ void initState() {
                   ),
                   title: const Text("Bắn Lot Liệu Sản Xuất"),
                   onTap: () {
-                    Get.to(() => const QRViewExample());
+                    Get.to(() => const InputLieu());
                    // Get.to(() => const InputLieu());
                     //action on press
                   },
