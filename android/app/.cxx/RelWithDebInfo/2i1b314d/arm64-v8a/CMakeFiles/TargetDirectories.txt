@@ -1,0 +1,2 @@
+D:/NODEJS/mobile_erp/android/app/.cxx/RelWithDebInfo/2i1b314d/arm64-v8a/CMakeFiles/edit_cache.dir
+D:/NODEJS/mobile_erp/android/app/.cxx/RelWithDebInfo/2i1b314d/arm64-v8a/CMakeFiles/rebuild_cache.dir
