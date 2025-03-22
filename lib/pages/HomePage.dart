@@ -36,7 +36,7 @@ Future<void> tryOtaUpdate() async {
       //LINK CONTAINS APK OF FLUTTER HELLO WORLD FROM FLUTTER SDK EXAMPLES
       OtaUpdate()
           .execute(
-        'https://cms.ddns.net/update/app-release.apk',
+        'http://cms.ddns.net/update/app-release.apk',
         destinationFilename: 'app-release.apk',
         //FOR NOW ANDROID ONLY - ABILITY TO VALIDATE CHECKSUM OF FILE:
         //sha256checksum: 'd6da28451a1e15cf7a75f2c3f151befad3b80ad0bb232ab15c20897e54f21478',
@@ -60,17 +60,19 @@ Future<void> tryOtaUpdate() async {
       _selectedBottomIndex = index;
       switch(index) {
         case 1: 
+        Get.to(() =>  DiemDanhNhom());
+        break;
+        case 2: 
         Get.to(() =>  LichSuDiLamTable());
         break;
-        case 2:
+        case 3:
         Get.to(()=> const DangKy());
         break;
 
-        case 3:
-
-        break;
-
         case 4:
+        Get.to(()=> const PheDuyetNghi());
+        break;
+        case 5:
 
         break;
       }
@@ -78,7 +80,7 @@ Future<void> tryOtaUpdate() async {
   }
   final logo = Image.asset('assets/images/cmslogo.jpg', width: 120, fit: BoxFit.cover);
 
-  int mobileVer =8; 
+  int mobileVer =10; 
   late Timer _timer;
 
  Future<bool> _checkMobileVer() async {
@@ -625,6 +627,11 @@ void initState() {
             backgroundColor: Color.fromARGB(255, 100, 167, 191),
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Điểm danh',
+            backgroundColor: Color.fromARGB(255, 58, 149, 161),
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.history),
             label: 'Work History',
             backgroundColor: Colors.green,
@@ -635,13 +642,14 @@ void initState() {
             backgroundColor: Colors.purple,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-            backgroundColor: Colors.pink,
+            icon: Icon(Icons.approval_rounded),
+            label: 'Approve Leave',
+            backgroundColor: Color.fromARGB(255, 0, 182, 136),
           ),
+          
         ],
         currentIndex: _selectedBottomIndex,
-        selectedItemColor: const Color.fromARGB(255, 252, 238, 34),
+        selectedItemColor: const Color.fromARGB(255, 216, 245, 50),
         onTap: _onBottomItemTapped,
       ),
       /* floatingActionButton: Builder(builder: (context) {

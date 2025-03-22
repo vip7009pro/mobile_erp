@@ -220,7 +220,7 @@ class _InputLieuState extends State<InputLieu> {
             onDetect: (capture) => _handleBarcodeScan(capture, type),
           ),
         ),
-        actions: [
+        actions: [          
           IconButton(icon: const Icon(Icons.flash_on), onPressed: () => cameraController.toggleTorch()),
           IconButton(icon: const Icon(Icons.flip_camera_android), onPressed: () => cameraController.switchCamera()),
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
