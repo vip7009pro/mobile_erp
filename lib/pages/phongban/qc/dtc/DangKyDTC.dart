@@ -44,7 +44,7 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
   bool isLoadingTestItems = false;
 
   // Biến lưu thông tin vật liệu/sản phẩm
-  String? materialName, materialSize, productName, prodRequestDate="", gCode = "7A07540A", mCode = "B0000035";
+  String? materialName, materialSize, productName, prodRequestDate="", gCode = "7A07540A", mCode = "B0000035", cUST_CD="6969";
 
   @override
   void initState() {
@@ -128,6 +128,66 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
     return (res['tk_status'] == 'OK');
   }
 
+  // Hàm đăng ký incoming data (tạm thởi)
+  Future<void> _registerIncomingData({
+    required String nqCheckRoll,
+    required int dtcId,
+  }) async {
+    final res = await API_Request.api_query('insertIQC1table', {     
+      'M_CODE': mCode,
+      'M_LOT_NO': lotNvlController.text,
+      'LOT_CMS': lotNvlController.text.substring(0,5),
+      'LOT_VENDOR': '',
+      'CUST_CD': cUST_CD,
+      'EXP_DATE': '',
+      'INPUT_LENGTH': 0,
+      'TOTAL_ROLL': 0,
+      'NQ_CHECK_ROLL': nqCheckRoll,
+      'DTC_ID': dtcId,
+      'TEST_EMPL': emplNoController.text,      
+      'REMARK': remarkController.text,
+    });
+    // Có thể show dialog success/fail ở đây nếu muốn
+  }
+
+  void _showIncomingDataDialog(int dtcId) {
+    final nqCheckRollController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Đăng ký incoming data'),
+        content: TextField(
+          controller: nqCheckRollController,
+          decoration: const InputDecoration(labelText: 'NQ_CHECK_ROLL'),
+          keyboardType: TextInputType.number,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await _registerIncomingData(
+                nqCheckRoll: nqCheckRollController.text,
+                dtcId: dtcId,
+              );
+              Navigator.of(context).pop();
+              AwesomeDialog(
+                context: context,
+                dialogType: DialogType.success,
+                title: 'Thành công',
+                desc: 'Đã đăng ký incoming data!',
+                btnOkOnPress: () {},
+              ).show();
+            },
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Kiểm tra thông tin vật liệu theo LOT NVL
   Future<void> _checkMaterialInfo(String lotNvl) async {    
     if (lotNvl.length == 10) {      
@@ -137,6 +197,7 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
           materialName = res['data'][0]['M_NAME'];
           materialSize = res['data'][0]['WIDTH_CD'].toString();
           mCode = res['data'][0]['M_CODE'];
+          cUST_CD = res['data'][0]['CUST_CD'];
           _loadTestedItemsByM_CODE(mCode!);
           //print('materialName' + materialName!);
           //print('materialSize' + materialSize!);
@@ -251,13 +312,23 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
         );
         if (!success) allSuccess = false;
       }
-       AwesomeDialog(
+      
+      AwesomeDialog(
           context: context,
           dialogType: allSuccess ? DialogType.success : DialogType.error,
           animType: AnimType.rightSlide,
           title: 'Thông báo',
-          desc: allSuccess ? 'Đăng ký thành công!, ID: $nextDtcId' : 'Có lỗi khi đăng ký một số test!',
-          btnOkOnPress: () {},
+          desc: allSuccess
+              ? 'Đăng ký thành công!, ID: $nextDtcId\nBạn có muốn đăng ký incoming data không?'
+              : 'Có lỗi khi đăng ký một số test!',
+          btnOkText: allSuccess ? 'Có' : null,
+          btnCancelText: allSuccess ? 'Không' : null,
+          btnOkOnPress: allSuccess
+              ? () {
+                  _showIncomingDataDialog(nextDtcId);
+                }
+              : null,
+          btnCancelOnPress: () {},
         ).show();       
      
     }
