@@ -136,7 +136,7 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
     final res = await API_Request.api_query('insertIQC1table', {     
       'M_CODE': mCode,
       'M_LOT_NO': lotNvlController.text,
-      'LOT_CMS': lotNvlController.text.substring(0,5),
+      'LOT_CMS': lotNvlController.text.substring(0,6),
       'LOT_VENDOR': '',
       'CUST_CD': cUST_CD,
       'EXP_DATE': '',
@@ -158,7 +158,7 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
         title: const Text('Đăng ký incoming data'),
         content: TextField(
           controller: nqCheckRollController,
-          decoration: const InputDecoration(labelText: 'NQ_CHECK_ROLL'),
+          decoration: const InputDecoration(labelText: 'Số Roll check ngoại quan'),
           keyboardType: TextInputType.number,
         ),
         actions: [
@@ -178,7 +178,9 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
                 dialogType: DialogType.success,
                 title: 'Thành công',
                 desc: 'Đã đăng ký incoming data!',
-                btnOkOnPress: () {},
+                btnOkOnPress: () {
+                  Navigator.of(context).pop(); // Đóng dialog khi bấm OK
+                },
               ).show();
             },
             child: const Text('Submit'),
@@ -312,7 +314,8 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
         );
         if (!success) allSuccess = false;
       }
-      
+      isChangeToMaterial  ? 
+
       AwesomeDialog(
           context: context,
           dialogType: allSuccess ? DialogType.success : DialogType.error,
@@ -329,7 +332,21 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
                 }
               : null,
           btnCancelOnPress: () {},
-        ).show();       
+        ).show() :
+         AwesomeDialog(
+          context: context,
+          dialogType: allSuccess ? DialogType.success : DialogType.error,
+          animType: AnimType.rightSlide,
+          title: 'Thông báo',
+          desc: allSuccess
+              ? 'Đăng ký thành công!, ID: $nextDtcId'
+              : 'Có lỗi khi đăng ký một số test!',
+          btnOkText: allSuccess ? 'OK' : null,
+          btnCancelText: allSuccess ? 'Cancel' : null,
+          btnOkOnPress: () {},
+      
+        ).show();
+
      
     }
   }
