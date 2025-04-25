@@ -13,6 +13,7 @@ import 'package:mobile_erp/pages/phongban/nhansu/DieuChuyenTeam.dart';
 import 'package:mobile_erp/pages/phongban/nhansu/LichSuDiLamList.dart';
 import 'package:mobile_erp/pages/phongban/nhansu/PheDuyetNghi.dart';
 import 'package:mobile_erp/pages/phongban/nhansu/QuanLyPhongBanNhanSu.dart';
+import 'package:mobile_erp/pages/phongban/qc/iqc/IQC.dart';
 import 'package:mobile_erp/pages/phongban/sx/InputLieu.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -570,6 +571,31 @@ void initState() {
                   title: const Text("Bắn Lot Liệu Sản Xuất"),
                   onTap: () {
                     Get.to(() => const InputLieu());
+                   // Get.to(() => const InputLieu());
+                    //action on press
+                  },
+                ),
+                //more child menue
+              ],
+            ),
+            ExpansionTile(
+              title: const Text("Quality Ctrl"),
+              leading: const Icon(
+                Icons.check,
+                color: Colors.red,
+              ), //add icon
+              childrenPadding:
+                  const EdgeInsets.only(left: 10), //children padding
+              children: [                
+                ListTile(
+                  visualDensity: const VisualDensity(vertical: -3),
+                  leading: const Icon(
+                    Icons.input_rounded,
+                    color: Color.fromARGB(255, 7, 166, 172),
+                  ),
+                  title: const Text("IQC"),
+                  onTap: () {
+                    Get.to(() => const IQCPage());
                    // Get.to(() => const InputLieu());
                     //action on press
                   },

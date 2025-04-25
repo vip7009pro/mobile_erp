@@ -36,6 +36,31 @@ class GlobalFunction {
 static String MyDate(String format, String datetimedata) {
   return DateFormat(format).format(DateTime.parse(datetimedata));
 }
+
+  static String MyNumber(num number) {
+    final formatter = NumberFormat('#,##0.0', 'vi_VN');
+    if (number < 1000) {
+      return formatter.format(number);
+    } else if (number < 1000000) {
+      return '${formatter.format(number / 1000)}K';
+    } else if (number < 1000000000) {
+      return '${formatter.format(number / 1000000)}M';
+    } else {
+      return '${formatter.format(number / 1000000000)}B';
+    }
+  }
+  static MyAmount(num totalPOAmount) {
+   final formatter = NumberFormat('#,##0.0', 'vi_VN');
+    if (totalPOAmount < 1000) {
+      return formatter.format(totalPOAmount);
+    } else if (totalPOAmount < 1000000) {
+      return '${formatter.format(totalPOAmount / 1000)}K';
+    } else if (totalPOAmount < 1000000000) {
+      return '${formatter.format(totalPOAmount / 1000000)}M';
+    } else {
+      return '${formatter.format(totalPOAmount / 1000000000)}B';
+    }
+  }
 }
 bool CheckPermission(UserData userData, List<String> permittedMainDept,
     List<String> permittedPosition, List<String> permittedEmpl, void Function() func) {

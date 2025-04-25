@@ -1288,3 +1288,105 @@ class CodeListData {
     return data;
   }
 }
+
+class TestItemData {
+  String? cTR_CD;
+  num? tESTCODE;
+  String? tEST_NAME;
+
+  TestItemData({this.cTR_CD, this.tESTCODE, this.tEST_NAME});
+
+  TestItemData.fromJson(Map<String, dynamic> json) {
+    cTR_CD = json['CTR_CD'];
+    tESTCODE = json['TEST_CODE'];
+    tEST_NAME = json['TEST_NAME'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['CTR_CD'] = cTR_CD;
+    data['TEST_CODE'] = tESTCODE;
+    data['TEST_NAME'] = tEST_NAME;
+    return data;
+  }
+}
+
+class REGISTERED_DTC_DATA {
+  num? dTC_ID;
+  String? fACTORY;
+  DateTime? tEST_FINISH_TIME;
+  String? tEST_EMPL_NO;
+  String? g_CODE;
+  String? pROD_REQUEST_NO;
+  String? g_NAME;
+  String? tEST_NAME;
+  String? tEST_TYPE_NAME;
+  String? wORK_POSITION_NAME;
+  String? rEQUEST_DATETIME;
+  String? rEQUEST_EMPL_NO;
+  String? m_NAME;
+  String? sIZE;
+  String? rEMARK;
+  String? lOTCMS;
+
+  REGISTERED_DTC_DATA(
+      {this.dTC_ID,
+      this.fACTORY,
+      this.tEST_FINISH_TIME,
+      this.tEST_EMPL_NO,
+      this.g_CODE,
+      this.pROD_REQUEST_NO,
+      this.g_NAME,
+      this.tEST_NAME,
+      this.tEST_TYPE_NAME,
+      this.wORK_POSITION_NAME,
+      this.rEQUEST_DATETIME,
+      this.rEQUEST_EMPL_NO,
+      this.m_NAME,
+      this.sIZE,
+      this.rEMARK,
+      this.lOTCMS});
+
+  REGISTERED_DTC_DATA.fromJson(Map<String, dynamic> json) {
+    dTC_ID = json['DTC_ID'];
+    fACTORY = json['FACTORY'];
+    tEST_FINISH_TIME = DateTime.parse(json['TEST_FINISH_TIME']);
+    tEST_EMPL_NO = json['TEST_EMPL_NO'];
+    g_CODE = json['G_CODE'];
+    pROD_REQUEST_NO = json['PROD_REQUEST_NO'];
+    g_NAME = json['G_NAME'];
+    tEST_NAME = json['TEST_NAME'];
+    tEST_TYPE_NAME = json['TEST_TYPE_NAME'];
+    wORK_POSITION_NAME = json['WORK_POSITION_NAME'];
+    rEQUEST_DATETIME = json['REQUEST_DATETIME'];
+    rEQUEST_EMPL_NO = json['REQUEST_EMPL_NO'];
+    m_NAME = json['M_NAME'];
+    sIZE = json['SIZE'];
+    rEMARK = json['REMARK'];
+    lOTCMS = json['LOTCMS'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = <String, dynamic>{};
+    data['DTC_ID'] = dTC_ID;
+    data['FACTORY'] = fACTORY;
+    data['TEST_FINISH_TIME'] =
+        tEST_FINISH_TIME!.toIso8601String().replaceFirst('Z', '+00:00');
+    data['TEST_EMPL_NO'] = tEST_EMPL_NO;
+    data['G_CODE'] = g_CODE;
+    data['PROD_REQUEST_NO'] = pROD_REQUEST_NO;
+    data['G_NAME'] = g_NAME;
+    data['TEST_NAME'] = tEST_NAME;
+    data['TEST_TYPE_NAME'] = tEST_TYPE_NAME;
+    data['WORK_POSITION_NAME'] = wORK_POSITION_NAME;
+    data['REQUEST_DATETIME'] = rEQUEST_DATETIME;
+    data['REQUEST_EMPL_NO'] = rEQUEST_EMPL_NO;
+    data['M_NAME'] = m_NAME;
+    data['SIZE'] = sIZE;
+    data['REMARK'] = rEMARK;
+    data['LOTCMS'] = lOTCMS;
+    return data;
+  }
+}
+
+

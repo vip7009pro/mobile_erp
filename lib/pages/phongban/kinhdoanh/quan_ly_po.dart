@@ -318,6 +318,183 @@ class _QuanLyPoState extends State<QuanLyPo> {
     );
   }
 
+  Widget _showPOInfo() {
+    double screenWidth = MediaQuery.of(context).size.width;
+    num totalPOQty = 0;
+    num totalDeliveredQty = 0;
+    num totalPOBalanceQty = 0;
+    double totalPOAmount = 0;
+    double totalDeliveredAmount = 0;
+    double totalPOBalanceAmount = 0;
+    for (var item in _poDataTable) {
+      totalPOQty += item.pOQTY!;
+      totalDeliveredQty += item.tOTALDELIVERED!;
+      totalPOBalanceQty += item.pOBALANCE!;
+      totalPOAmount += item.pOAMOUNT!;
+      totalDeliveredAmount += item.dELIVEREDAMOUNT!;
+      totalPOBalanceAmount += item.bALANCEAMOUNT!;
+    }
+    return Container(
+      width: screenWidth,
+      child: Table(
+        border: TableBorder.all(color: Colors.grey),
+        children: [
+          TableRow(children: [
+            TableCell(
+              verticalAlignment: TableCellVerticalAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.all(3.0),
+                child: Text(
+                  'PO QTY',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            TableCell(
+              verticalAlignment: TableCellVerticalAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.all(3.0),
+                child: Text(
+                  'DELI QTY',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            TableCell(
+              verticalAlignment: TableCellVerticalAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.all(3.0),
+                child: Text(
+                  'BL QTY',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ]),
+          TableRow(children: [
+            TableCell(
+              verticalAlignment: TableCellVerticalAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.all(3.0),
+                child: Text(
+                  '${GlobalFunction.MyNumber(totalPOQty)}',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 0, 90, 226)),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            TableCell(
+              verticalAlignment: TableCellVerticalAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.all(3.0),
+                child: Text(
+                  '${GlobalFunction.MyNumber(totalDeliveredQty)}',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 33, 196, 0)),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            TableCell(
+              verticalAlignment: TableCellVerticalAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.all(3.0),
+                child: Text(
+                  '${GlobalFunction.MyNumber(totalPOBalanceQty)}',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 236, 2, 2)),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ]),
+          TableRow(children: [
+            TableCell(
+              verticalAlignment: TableCellVerticalAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.all(3.0),
+                child: Text(
+                  'PO AMOUNT',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            TableCell(
+              verticalAlignment: TableCellVerticalAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.all(3.0),
+                child: Text(
+                  'DELI AMOUNT',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            TableCell(
+              verticalAlignment: TableCellVerticalAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.all(3.0),
+                child: Text(
+                  'BL AMOUNT',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ]),
+          TableRow(children: [
+            TableCell(
+              verticalAlignment: TableCellVerticalAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.all(3.0),
+                child: Text(
+                  '${GlobalFunction.MyAmount(totalPOAmount)}\$',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 0, 90, 226)),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            TableCell(
+              verticalAlignment: TableCellVerticalAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.all(3.0),
+                child: Text(
+                  '${GlobalFunction.MyAmount(totalDeliveredAmount)}\$',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 33, 196, 0)),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+            TableCell(
+              verticalAlignment: TableCellVerticalAlignment.middle,
+              child: Padding(
+                padding: const EdgeInsets.all(3.0),
+                child: Text(
+                  '${GlobalFunction.MyAmount(totalPOBalanceAmount)}\$',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 236, 2, 2)),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ]),
+        ])
+    );
+  }
+
   @override
   void initState() {
     // TODO: implement initState
@@ -332,6 +509,45 @@ class _QuanLyPoState extends State<QuanLyPo> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () {
+              PODATA newpo = PODATA(
+                pOID: 0,
+                cUSTNAMEKD: '',
+                pONO: '',
+                gNAME: '',
+                gNAMEKD: '',
+                gCODE: '7A09455A',
+                pODATE:DateTime.now().toString(),
+                rDDATE: DateTime.now().toString(),
+                bEP: 0,
+                pRODPRICE: 0,
+                pOQTY: 0,
+                tOTALDELIVERED: 0,
+                pOBALANCE: 0,
+                pOAMOUNT: 0,
+                dELIVEREDAMOUNT: 0,
+                bALANCEAMOUNT: 0,
+                dELIVEREDBEPAMOUNT: 0,
+                eMPLNAME: '',
+                pRODTYPE: '',
+                mNAMEFULLBOM: '',
+                pRODMAINMATERIAL: '',
+                cUSTCD: '',
+                eMPLNO: '',
+                pOMONTH: 0,
+                pOWEEKNUM: 0,
+                oVERDUE: '',
+                rEMARK: '',
+                fINAL: '',
+
+              );              
+              Get.to(() => PoDetail(currentPO: newpo));
+            },
+          ),
+        ],
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -350,254 +566,249 @@ class _QuanLyPoState extends State<QuanLyPo> {
           style: TextStyle(color: Colors.blueAccent),
         ),
       ),
-      body: ListView.builder(
-        itemBuilder: ((BuildContext context, int index) {
-          final child = Container(
-            alignment: Alignment.topLeft,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${_poDataTable[index].cUSTNAMEKD}',
-                  style: const TextStyle(
-                      color: Color.fromARGB(255, 59, 132, 228), fontSize: 12),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    /* MarqueeText(
-                      text: TextSpan(
-                        text:
-                            "${index + 1}.${(_poDataTable[index].gNAME ?? "").length > 30 ? (_poDataTable[index].gNAME ?? "").substring(0, 30) : (_poDataTable[index].gNAME ?? "")}",
+      body: Column(
+        children: [
+          _showPOInfo(),
+          const Divider(),
+          Expanded(
+            child: ListView.builder(
+              itemBuilder: ((BuildContext context, int index) {
+                final child = Container(
+                  alignment: Alignment.topLeft,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${_poDataTable[index].cUSTNAMEKD}',
+                        style: const TextStyle(
+                            color: Color.fromARGB(255, 59, 132, 228), fontSize: 12),
                       ),
-                      style: const TextStyle(
-                        fontSize: 15,
-                        color: Colors.blue,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.justify,
+                            maxLines: 1,
+                            "${index+1}.${(_poDataTable[index].gNAME ?? "").length > 30? (_poDataTable[index].gNAME ?? "").substring(0,30) : (_poDataTable[index].gNAME ?? "")}",
+                            style: const TextStyle(
+                                color: Colors.blue, fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
-                      speed: 90,
-                      marqueeDirection: MarqueeDirection.ltr,
-                      alwaysScroll: false,
-                    ), */
-                    Text(
-                      overflow: TextOverflow.ellipsis,
-                       textAlign: TextAlign.justify,
-                      maxLines: 1,
-                      "${index+1}.${(_poDataTable[index].gNAME ?? "").length > 30? (_poDataTable[index].gNAME ?? "").substring(0,30) : (_poDataTable[index].gNAME ?? "")}",
-                      style: const TextStyle(
-                          color: Colors.blue, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      GlobalFunction.MyDate(
-                          'yyyy-MM-dd', _poDataTable[index].pODATE ?? ""),
-                      style: const TextStyle(
-                          color: Color.fromARGB(255, 104, 122, 3),
-                          fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(
-                      width: 10,
-                    ),
-                    Text(
-                      GlobalFunction.MyDate(
-                          'yyyy-MM-dd', _poDataTable[index].rDDATE ?? ""),
-                      style: const TextStyle(
-                          color: Color.fromARGB(255, 204, 1, 153),
-                          fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      NumberFormat.decimalPattern('en_US')
-                          .format(_poDataTable[index].pOQTY),
-                      style: const TextStyle(
-                          color: Color.fromARGB(255, 80, 44, 236),
-                          fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(
-                      width: 8.0,
-                    ),
-                    Text(
-                      NumberFormat.decimalPattern('en_US')
-                          .format(_poDataTable[index].tOTALDELIVERED),
-                      style: const TextStyle(
-                          color: Color.fromARGB(255, 9, 177, 18),
-                          fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(
-                      width: 8.0,
-                    ),
-                    Text(
-                      NumberFormat.decimalPattern('en_US')
-                          .format(_poDataTable[index].pOBALANCE),
-                      style: const TextStyle(
-                          color: Color.fromARGB(255, 197, 1, 1),
-                          fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          );
-          final leading = Container(
-            width: 60,
-            height: 60,
-            padding: const EdgeInsets.all(8),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [
-                  Color.fromARGB(255, 243, 242, 245),
-                  Color.fromARGB(255, 153, 209, 247)
-                ], // Your gradient colors
-              ),
-              borderRadius:
-                  BorderRadius.circular(25), // Optional: for rounded corners
-            ),
-            child: Text(
-              '${((_poDataTable[index].cUSTNAMEKD ?? "").length > 4 ? _poDataTable[index].cUSTNAMEKD!.substring(0, 4) : _poDataTable[index].cUSTNAMEKD)}',
-              style: const TextStyle(
-                  color: Color.fromARGB(255, 59, 132, 228),
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold),
-            ),
-          );
-          final trailing = GestureDetector(
-            onTapDown: (TapDownDetails details) {
-              showMenu(
-                context: context,
-                position: RelativeRect.fromLTRB(
-                  details.globalPosition.dx,
-                  details.globalPosition.dy,
-                  details.globalPosition.dx + 1,
-                  details.globalPosition.dy + 1,
-                ),
-                items: <PopupMenuEntry>[
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Text('Edit'),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            GlobalFunction.MyDate(
+                                'yyyy-MM-dd', _poDataTable[index].pODATE ?? ""),
+                            style: const TextStyle(
+                                color: Color.fromARGB(255, 104, 122, 3),
+                                fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(
+                            width: 10,
+                          ),
+                          Text(
+                            GlobalFunction.MyDate(
+                                'yyyy-MM-dd', _poDataTable[index].rDDATE ?? ""),
+                            style: const TextStyle(
+                                color: Color.fromARGB(255, 204, 1, 153),
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            NumberFormat.decimalPattern('en_US')
+                                .format(_poDataTable[index].pOQTY),
+                            style: const TextStyle(
+                                color: Color.fromARGB(255, 80, 44, 236),
+                                fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(
+                            width: 8.0,
+                          ),
+                          Text(
+                            NumberFormat.decimalPattern('en_US')
+                                .format(_poDataTable[index].tOTALDELIVERED),
+                            style: const TextStyle(
+                                color: Color.fromARGB(255, 9, 177, 18),
+                                fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(
+                            width: 8.0,
+                          ),
+                          Text(
+                            NumberFormat.decimalPattern('en_US')
+                                .format(_poDataTable[index].pOBALANCE),
+                            style: const TextStyle(
+                                color: Color.fromARGB(255, 197, 1, 1),
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Text('Delete'),
+                );
+                final leading = Container(
+                  width: 60,
+                  height: 60,
+                  padding: const EdgeInsets.all(8),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color.fromARGB(255, 243, 242, 245),
+                        Color.fromARGB(255, 153, 209, 247)
+                      ], // Your gradient colors
+                    ),
+                    borderRadius:
+                        BorderRadius.circular(25), // Optional: for rounded corners
                   ),
-                ],
-              ).then((value) {
-                if (value != null) {
-                  if (value == 'edit') {
-                    showDialog(
+                  child: Text(
+                    '${((_poDataTable[index].cUSTNAMEKD ?? "").length > 4 ? _poDataTable[index].cUSTNAMEKD!.substring(0, 4) : _poDataTable[index].cUSTNAMEKD)}',
+                    style: const TextStyle(
+                        color: Color.fromARGB(255, 59, 132, 228),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold),
+                  ),
+                );
+                final trailing = GestureDetector(
+                  onTapDown: (TapDownDetails details) {
+                    showMenu(
                       context: context,
-                      builder: (BuildContext context) {
-                        TextEditingController maindeptnamevnctrl =
-                            TextEditingController();
-                        TextEditingController maindeptnamekrctrl =
-                            TextEditingController();
-                        maindeptnamevnctrl.text =
-                            _poDataTable[index].eMPLNAME ?? "";
-                        maindeptnamekrctrl.text =
-                            _poDataTable[index].gNAME ?? "";
-                        return AlertDialog(
-                          title: const Text('Edit PO'),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              TextField(
-                                decoration: const InputDecoration(
-                                  hintText: 'Main Dept Name VN',
+                      position: RelativeRect.fromLTRB(
+                        details.globalPosition.dx,
+                        details.globalPosition.dy,
+                        details.globalPosition.dx + 1,
+                        details.globalPosition.dy + 1,
+                      ),
+                      items: <PopupMenuEntry>[
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Text('Edit'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text('Delete'),
+                        ),
+                      ],
+                    ).then((value) {
+                      if (value != null) {
+                        if (value == 'edit') {
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              TextEditingController maindeptnamevnctrl =
+                                  TextEditingController();
+                              TextEditingController maindeptnamekrctrl =
+                                  TextEditingController();
+                              maindeptnamevnctrl.text =
+                                  _poDataTable[index].eMPLNAME ?? "";
+                              maindeptnamekrctrl.text =
+                                  _poDataTable[index].gNAME ?? "";
+                              return AlertDialog(
+                                title: const Text('Edit PO'),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    TextField(
+                                      decoration: const InputDecoration(
+                                        hintText: 'Main Dept Name VN',
+                                      ),
+                                      controller: maindeptnamevnctrl,
+                                    ),
+                                    TextField(
+                                      decoration: const InputDecoration(
+                                        hintText: 'Main Dept Name KR',
+                                      ),
+                                      controller: maindeptnamekrctrl,
+                                    ),
+                                    const SizedBox(height: 20),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: const Text('Save'),
+                                    ),
+                                  ],
                                 ),
-                                controller: maindeptnamevnctrl,
+                              );
+                            },
+                          );
+                        } else if (value == 'delete') {
+                          AwesomeDialog(
+                            context: context,
+                            dialogType: DialogType.question,
+                            animType: AnimType.rightSlide,
+                            title: 'Cảnh báo',
+                            desc:
+                                'Bạn muốn xóa maindept: ${_poDataTable[index].cUSTNAMEKD ?? ""}',
+                            btnCancelOnPress: () {},
+                            btnOkOnPress: () {},
+                          ).show();
+                        }
+                      }
+                    });
+                  },
+                  child: const Icon(Icons.more_vert),
+                );
+                return GestureDetector(
+                  onTap: () {
+                    Get.to(() => PoDetail(currentPO: _poDataTable[index]));
+                  },
+                  child: Container(
+                      margin: const EdgeInsets.all(2.0),
+                      padding: const EdgeInsets.all(2.0),
+                      decoration: BoxDecoration(
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            spreadRadius: 2.0,
+                            blurRadius: 5.0,
+                            offset: const Offset(
+                                0, 3), // Changes the position of the shadow
+                          )
+                        ],
+                        borderRadius: const BorderRadius.all(Radius.circular(5.0)),
+                        gradient: const LinearGradient(
+                            colors: [
+                              Color.fromARGB(255, 255, 255, 254),
+                              Color.fromARGB(255, 245, 235, 248),
+                            ],
+                            begin: FractionalOffset(0.0, 0.0),
+                            end: FractionalOffset(1.0, 0.0),
+                            stops: [0.0, 1.0],
+                            tileMode: TileMode.clamp),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              leading,
+                              const SizedBox(
+                                width: 8,
                               ),
-                              TextField(
-                                decoration: const InputDecoration(
-                                  hintText: 'Main Dept Name KR',
-                                ),
-                                controller: maindeptnamekrctrl,
-                              ),
-                              const SizedBox(height: 20),
-                              ElevatedButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                                child: const Text('Save'),
-                              ),
+                              child
                             ],
                           ),
-                        );
-                      },
-                    );
-                  } else if (value == 'delete') {
-                    AwesomeDialog(
-                      context: context,
-                      dialogType: DialogType.question,
-                      animType: AnimType.rightSlide,
-                      title: 'Cảnh báo',
-                      desc:
-                          'Bạn muốn xóa maindept: ${_poDataTable[index].cUSTNAMEKD ?? ""}',
-                      btnCancelOnPress: () {},
-                      btnOkOnPress: () {},
-                    ).show();
-                  }
-                }
-              });
-            },
-            child: const Icon(Icons.more_vert),
-          );
-          return GestureDetector(
-            onTap: () {
-              Get.to(() => PoDetail(currentPO: _poDataTable[index]));
-            },
-            child: Container(
-                margin: const EdgeInsets.all(2.0),
-                padding: const EdgeInsets.all(2.0),
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      spreadRadius: 2.0,
-                      blurRadius: 5.0,
-                      offset: const Offset(
-                          0, 3), // Changes the position of the shadow
-                    )
-                  ],
-                  borderRadius: const BorderRadius.all(Radius.circular(5.0)),
-                  gradient: const LinearGradient(
-                      colors: [
-                        Color.fromARGB(255, 255, 255, 254),
-                        Color.fromARGB(255, 245, 235, 248),
-                      ],
-                      begin: FractionalOffset(0.0, 0.0),
-                      end: FractionalOffset(1.0, 0.0),
-                      stops: [0.0, 1.0],
-                      tileMode: TileMode.clamp),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        leading,
-                        const SizedBox(
-                          width: 8,
-                        ),
-                        child
-                      ],
-                    ),
-                    trailing
-                  ],
-                )),
-          );
-        }),
-        itemCount: _poDataTable.length,
+                          trailing
+                        ],
+                      )),
+                );
+              }),
+              itemCount: _poDataTable.length,
+            ),
+          ),
+        ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Builder(builder: (context) {
