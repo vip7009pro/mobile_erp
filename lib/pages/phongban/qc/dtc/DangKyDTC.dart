@@ -6,6 +6,7 @@ import 'package:mobile_erp/controller/GetXController.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:mobile_erp/model/DataInterfaceClass.dart';
 import 'package:mobile_erp/controller/APIRequest.dart';
+import 'package:collection/collection.dart';
 
 class ReliabilityTestRegistrationForm extends StatefulWidget {
   const ReliabilityTestRegistrationForm({Key? key}) : super(key: key);
@@ -80,6 +81,21 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
     }
   }
 
+  // Hàm lấy DTC_ID cho LOT NVL: nếu đã từng đăng ký thì lấy DTC_ID cũ, nếu chưa thì lấy DTC_ID tự tăng
+  Future<int> _getDtcIdForLotNvl(String lotNvl) async {
+    final res = await API_Request.api_query('checkDTC_ID_FROM_M_LOT_NO', {
+      'M_LOT_NO': lotNvl,
+    });
+    if (res['tk_status'] == 'OK' && res['data'] != null && res['data'].isNotEmpty) {
+      final dtcId = res['data'][0]['DTC_ID'];
+      if (dtcId != null && int.tryParse(dtcId.toString()) != null) {
+        return int.parse(dtcId.toString());
+      }
+    }
+    // Nếu không có DTC_ID cũ thì trả về -1 để xử lý tiếp
+    return -1;
+  }
+
   // Hàm lấy DTC_ID kế tiếp
   Future<int> _loadNextDtcId() async {
     try {
@@ -130,7 +146,7 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
 
   // Hàm đăng ký incoming data (tạm thởi)
   Future<void> _registerIncomingData({
-    required String nqCheckRoll,
+    required int nqCheckRoll,
     required int dtcId,
   }) async {
     final res = await API_Request.api_query('insertIQC1table', {     
@@ -146,8 +162,17 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
       'DTC_ID': dtcId,
       'TEST_EMPL': emplNoController.text,      
       'REMARK': remarkController.text,
+    }).then((value) {
+      if (value['tk_status'] == 'OK') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đăng ký incoming data thành công!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Đăng ký incoming data thất bại!' + value['message'])),
+        );
+      }
     });
-    // Có thể show dialog success/fail ở đây nếu muốn
   }
 
   void _showIncomingDataDialog(int dtcId) {
@@ -169,11 +194,15 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
           ElevatedButton(
             onPressed: () async {
               await _registerIncomingData(
-                nqCheckRoll: nqCheckRollController.text,
+                nqCheckRoll: 0, //qCheckRollController.text,
                 dtcId: dtcId,
               );
               Navigator.of(context).pop();
-              AwesomeDialog(
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Đã đăng ký incoming data!')),
+              );
+
+              /* AwesomeDialog(
                 context: context,
                 dialogType: DialogType.success,
                 title: 'Thành công',
@@ -181,13 +210,27 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
                 btnOkOnPress: () {
                   Navigator.of(context).pop(); // Đóng dialog khi bấm OK
                 },
-              ).show();
+              ).show(); */
             },
             child: const Text('Submit'),
           ),
         ],
       ),
     );
+  }
+
+  // Hàm kiểm tra đã đăng ký test với LOT NVL và TEST_CODE chưa
+  Future<bool> _isTestAlreadyRegistered(String lotNvl, String testCode) async {
+    final res = await API_Request.api_query('checkDTC_M_LOT_NO_TEST_CODE_REG', {
+      'M_LOT_NO': lotNvl,
+      'TEST_CODE': testCode,
+    });
+    //print(res.toString());
+    if (res['tk_status'] == 'OK' && res['data'] != null && res['data'].isNotEmpty) {
+      print('ton tai rooi');
+      return true;
+    }
+    return false;
   }
 
   // Kiểm tra thông tin vật liệu theo LOT NVL
@@ -297,11 +340,23 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
 
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      final nextDtcId = await _loadNextDtcId();
+      int dtcId = isChangeToMaterial ? await _getDtcIdForLotNvl(lotNvlController.text) : await _loadNextDtcId();
+      print('dtc_id $dtcId');
+      if (dtcId == -1) {
+        dtcId = await _loadNextDtcId();
+      }
       bool allSuccess = true;
+      final List<String> skippedTestItems = [];
       for (final itemCode in selectedTestItems) {
+        // Kiểm tra nếu đã tồn tại thì bỏ qua
+        bool exists = await _isTestAlreadyRegistered(lotNvlController.text, itemCode);
+        if (exists) {
+          skippedTestItems.add(itemCode);
+          continue;
+        }
+
         final success = await _registerDtcTestItem(
-          dtcId: nextDtcId, // dùng chung DTC_ID cho tất cả test item
+          dtcId: dtcId, // dùng chung DTC_ID cho tất cả test item
           testItemCode: itemCode,
           testType: selectedTestType!,
           prodRequestNo: isChangeToMaterial ? '1IG0008' : ycsxController.text,
@@ -314,37 +369,52 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
         );
         if (!success) allSuccess = false;
       }
-      isChangeToMaterial  ? 
-
-      AwesomeDialog(
+      // Thông báo các hạng mục đã đăng ký trước đó
+      String? getTestNameByCode(String code) {
+        final item = testItems.firstWhereOrNull((e) => e.tESTCODE?.toString() == code);
+        return item?.tEST_NAME ?? code;
+      }
+      if (skippedTestItems.length == selectedTestItems.length) {
+        final skippedTestNames = skippedTestItems.map((code) => getTestNameByCode(code)).toList();
+        AwesomeDialog(
           context: context,
-          dialogType: allSuccess ? DialogType.success : DialogType.error,
-          animType: AnimType.rightSlide,
-          title: 'Thông báo',
-          desc: allSuccess
-              ? 'Đăng ký thành công!, ID: $nextDtcId\nBạn có muốn đăng ký incoming data không?'
-              : 'Có lỗi khi đăng ký một số test!',
-          btnOkText: allSuccess ? 'Có' : null,
-          btnCancelText: allSuccess ? 'Không' : null,
-          btnOkOnPress: allSuccess
-              ? () {
-                  _showIncomingDataDialog(nextDtcId);
-                }
-              : null,
-          btnCancelOnPress: () {},
-        ).show() :
-         AwesomeDialog(
-          context: context,
-          dialogType: allSuccess ? DialogType.success : DialogType.error,
-          animType: AnimType.rightSlide,
-          title: 'Thông báo',
-          desc: allSuccess
-              ? 'Đăng ký thành công!, ID: $nextDtcId'
-              : 'Có lỗi khi đăng ký một số test!',
-          btnOkText: allSuccess ? 'OK' : null,
-          btnCancelText: allSuccess ? 'Cancel' : null,
+          dialogType: DialogType.error,
+          title: 'Lỗi',
+          desc: 'Tất cả các hạng mục đã được đăng ký trước đó:\n${skippedTestNames.join(', ')}',
           btnOkOnPress: () {},
-      
+        ).show();
+        return;
+      }
+      if (skippedTestItems.isNotEmpty) {
+        final skippedTestNames = skippedTestItems.map((code) => getTestNameByCode(code)).toList();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Các hạng mục đã đăng ký trước đó: \n${skippedTestNames.join(', ')}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      if(allSuccess && isChangeToMaterial) {
+        await _registerIncomingData(
+                nqCheckRoll: 0,
+                dtcId: dtcId,
+              );
+      }
+        AwesomeDialog(
+        context: context,
+        dialogType: allSuccess ? DialogType.success : DialogType.error,
+        animType: AnimType.rightSlide,
+        title: 'Thông báo',
+        desc: allSuccess
+            ? 'Đăng ký thành công!, ID: $dtcId'
+            : 'Có lỗi khi đăng ký một số test!',
+        btnOkText: allSuccess ? 'OK' : null,
+        btnCancelText: allSuccess ? 'Cancel' : null,
+        btnOkOnPress: () {},
+    
         ).show();
 
      
@@ -367,8 +437,7 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
                   _checkProductInfo(barcode);                  
                 } else if (type == 'LOTNVL') {
                   lotNvlController.text = barcode;
-                  _checkMaterialInfo(barcode);
-                  
+                  _checkMaterialInfo(barcode);                  
                 }
               });
               Navigator.pop(context);

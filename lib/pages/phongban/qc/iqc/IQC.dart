@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_erp/pages/phongban/qc/dtc/DangKyDTC.dart';
+import 'package:mobile_erp/pages/phongban/qc/iqc/IQC_ICM.dart';
 
 class IQCPage extends StatelessWidget {
   const IQCPage({Key? key}) : super(key: key);
@@ -52,7 +53,7 @@ class IQCPage extends StatelessWidget {
           child: const TabBarView(
             children: [
               Center(child: const ReliabilityTestRegistrationForm()),
-              Center(child: Text('Nội dung Tab 2')),
+              Center(child: const IncomingListPage()),
               Center(child: Text('Nội dung Tab 3')),
               Center(child: Text('Nội dung Tab 4')),
             ],

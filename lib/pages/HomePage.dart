@@ -315,7 +315,12 @@ void initState() {
                   ),
                   title: const Text("Quản lý PO"),
                   onTap: () {
+                     if (!CheckPermission(c.userData, ['KD'],
+                        ['Manager', 'AM', 'Senior', 'Staff'], ['ALL'], () {
+                      Get.to(() => const QuanLyPhongBanNhanSu());
+                    })) {
                     Get.to(()=> const QuanLyPo());
+                    }
                     //action on press
                   },
                 ),

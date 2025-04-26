@@ -98,4 +98,58 @@ class API_Request {
       return {'tk_status': 'NG', 'message': '$e'};
     }
   }
+
+
+  static Future<Map<String, dynamic>> uploadQuery({
+    required dynamic file,
+    required String filename,
+    required String uploadfoldername,
+    List<String>? filenamelist,
+  }) async {
+    
+    String url = '';
+    url = await LocalDataAccess.getVariable('serverIP');
+    if (url == '' || url == 'MAIN_SERVER') {
+      url = 'http://14.160.33.94:5013/uploadfile';
+    } else if (url == 'TEST_SERVER') {
+      url = 'http://192.168.1.136:3007/uploadfile';
+    } else {
+      url = 'http://14.160.33.94:3007/uploadfile';
+    }
+
+    Dio dio = Dio();
+
+    FormData formData = FormData.fromMap({
+      "uploadedfile": await MultipartFile.fromFile(file.path, filename: filename),
+      "filename": filename,
+      "uploadfoldername": uploadfoldername,
+      "token_string": await LocalDataAccess.getVariable('token'), // Assuming you have a method to get the token      
+      "CTR_CD": "002"
+    });
+
+    if (filenamelist != null) {
+      formData.fields.add(MapEntry("newfilenamelist", jsonEncode(filenamelist)));
+    }
+
+    try {
+      Response response = await dio.post(
+        url,
+        data: formData,
+        options: Options(
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data;
+      } else {
+        return {'tk_status': 'NG', 'message': 'Failed to upload file'};
+      }
+    } catch (e) {
+      return {'tk_status': 'NG', 'message': '$e'};
+    }
+  }
+
 }
