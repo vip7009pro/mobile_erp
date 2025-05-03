@@ -148,13 +148,19 @@ class _IncomingListPageState extends State<IncomingListPage> {
                               Text(
                                 'Tổng kết quả: ${item['TOTAL_RESULT'] ?? ''}',
                                 style: TextStyle(
-                                  color: item['TOTAL_RESULT'] == 'OK' ? Colors.green : Colors.red,
+                                  color: item['TOTAL_RESULT'] == 'OK' ? Colors.green :item['TOTAL_RESULT'] == 'PD' ? Colors.orange : Colors.red,
                                 ),
                               ),
                               Text(
                                 'KQ IQC: ${item['IQC_TEST_RESULT'] ?? ''}',
                                 style: TextStyle(
-                                  color: item['IQC_TEST_RESULT'] == 'OK' ? Colors.green : Colors.red,
+                                  color: item['IQC_TEST_RESULT'] == 'OK' ? Colors.green :item['IQC_TEST_RESULT'] == 'PD' ? Colors.orange : Colors.red,
+                                ),
+                              ),
+                              Text(
+                                'DTC RESULT: ${item['DTC_RESULT'] ?? ''}',
+                                style: TextStyle(
+                                  color: item['DTC_RESULT'] == 'OK' ? Colors.green :item['DTC_RESULT'] == 'PD' ? Colors.orange : Colors.red,
                                 ),
                               ),
                               Text('Roll ngoại quan: ${item['NQ_CHECK_ROLL'] ?? ''}'),
@@ -190,6 +196,7 @@ class _IncomingDetailPageState extends State<IncomingDetailPage> {
   late TextEditingController nqCheckRollController;
   String? totalResult;
   String? iqcTestResult;
+  String? dtcResult;  
   late TextEditingController remarkController;
   bool isUpdating = false;
   File? pickedImage;
@@ -202,6 +209,7 @@ class _IncomingDetailPageState extends State<IncomingDetailPage> {
     nqCheckRollController = TextEditingController(text: widget.data['NQ_CHECK_ROLL']?.toString() ?? '');
     totalResult = widget.data['TOTAL_RESULT']?.toString() ?? 'OK';
     iqcTestResult = widget.data['IQC_TEST_RESULT']?.toString() ?? 'OK';
+    dtcResult = widget.data['DTC_RESULT']?.toString() ?? 'OK';
     remarkController = TextEditingController(text: widget.data['REMARK']?.toString() ?? '');
   }
 
@@ -212,8 +220,9 @@ class _IncomingDetailPageState extends State<IncomingDetailPage> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+  // Hàm chọn/chụp ảnh
+  Future<void> _pickImage({required ImageSource source}) async {
+    final picked = await ImagePicker().pickImage(source: source);
     if (picked != null) {
       setState(() {
         pickedImage = File(picked.path);
@@ -262,16 +271,12 @@ class _IncomingDetailPageState extends State<IncomingDetailPage> {
       'NQ_CHECK_ROLL': nqCheckRollController.text,
       'TOTAL_RESULT': totalResult,
       'IQC_TEST_RESULT': iqcTestResult,
+      'DTC_RESULT': dtcResult,
       'IQC1_ID': IQC1_ID,
-      'REMARK': remarkController.text,
-      'CHECKSHEET': 'Y',
+      'REMARK': remarkController.text,      
     });
-    bool uploadSuccess = true;
-    if (pickedImage != null) {
-      uploadSuccess = await _uploadImage(IQC1_ID);
-    }
     setState(() => isUpdating = false);
-    if (res['tk_status'] == 'OK' && uploadSuccess) {
+    if (res['tk_status'] == 'OK') {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Cập nhật thành công!')),
       );
@@ -279,6 +284,25 @@ class _IncomingDetailPageState extends State<IncomingDetailPage> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Cập nhật thất bại!')),
+      );
+    }
+  }
+
+  Future<void> _updateChecksheetFlag(String iqc1Id) async {
+    final res = await API_Request.api_query('updateIncomingChecksheet', {
+      'IQC1_ID': iqc1Id,
+      'CHECKSHEET': 'Y',
+    });
+    if (res['tk_status'] == 'OK') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã cập nhật trạng thái checksheet!')),
+      );
+      setState(() {
+        widget.data['CHECKSHEET'] = 'Y';
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Cập nhật trạng thái checksheet thất bại!')),
       );
     }
   }
@@ -301,13 +325,13 @@ class _IncomingDetailPageState extends State<IncomingDetailPage> {
             Text('Size: ${widget.data['WIDTH_CD'] ?? ''}'),
             const SizedBox(height: 16),
             // Ảnh checksheet hoặc nút chọn ảnh
-            if (hasChecksheet)
+            if (widget.data['CHECKSHEET'] == 'Y')
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Ảnh checksheet kiểm tra đầu vào:'),
-                  const SizedBox(height: 8),
-                  Image.network('http://14.160.33.94/iqcincoming/${widget.data['IQC1_ID']}.jpg', height: 200, fit: BoxFit.contain),
+                  const SizedBox(height: 8),                 
+                  Image.network('http://14.160.33.94/iqcincoming/${widget.data['IQC1_ID']}.jpg', height: 200, fit: BoxFit.contain)                 
                 ],
               )
             else ...[
@@ -322,11 +346,42 @@ class _IncomingDetailPageState extends State<IncomingDetailPage> {
                         Row(
                           children: [
                             ElevatedButton.icon(
-                              onPressed: _pickImage,
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('Chọn lại ảnh'),
+                              onPressed: () => _pickImage(source: ImageSource.camera),
+                              icon: const Icon(Icons.camera_alt),
+                              label: const Text('Chụp ảnh'),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton.icon(
+                              onPressed: () => _pickImage(source: ImageSource.gallery),
+                              icon: const Icon(Icons.photo_library),
+                              label: const Text('Chọn từ bộ nhớ'),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 8),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.upload_file),
+                          label: const Text('Upload Checksheet'),
+                          onPressed: () async {
+                            final IQC1_ID = widget.data['IQC1_ID']?.toString();
+                            if (IQC1_ID == null || IQC1_ID.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Không tìm thấy IQC1_ID!')),
+                              );
+                              return;
+                            }
+                            final success = await _uploadImage(IQC1_ID);
+                            if (success) {
+                              await _updateChecksheetFlag(IQC1_ID);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Upload checksheet thành công!')),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Upload checksheet thất bại!')),
+                              );
+                            }
+                          },
                         ),
                       ],
                     )
@@ -335,10 +390,20 @@ class _IncomingDetailPageState extends State<IncomingDetailPage> {
                       children: [
                         const Text('Chưa có ảnh checksheet!'),
                         const SizedBox(height: 8),
-                        ElevatedButton.icon(
-                          onPressed: _pickImage,
-                          icon: const Icon(Icons.upload_file),
-                          label: const Text('Chọn ảnh checksheet'),
+                        Row(
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: () => _pickImage(source: ImageSource.camera),
+                              icon: const Icon(Icons.camera_alt),
+                              label: const Text('Chụp ảnh'),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton.icon(
+                              onPressed: () => _pickImage(source: ImageSource.gallery),
+                              icon: const Icon(Icons.photo_library),
+                              label: const Text('Chọn từ bộ nhớ'),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -365,6 +430,12 @@ class _IncomingDetailPageState extends State<IncomingDetailPage> {
                   onChanged: (val) => setState(() => totalResult = val),
                 ),
                 const Text('NG'),
+                Radio<String>(
+                  value: 'PD',
+                  groupValue: totalResult,
+                  onChanged: (val) => setState(() => totalResult = val),
+                ),
+                const Text('PD'),
               ],
             ),
             const SizedBox(height: 8),
@@ -383,6 +454,36 @@ class _IncomingDetailPageState extends State<IncomingDetailPage> {
                   onChanged: (val) => setState(() => iqcTestResult = val),
                 ),
                 const Text('NG'),
+                Radio<String>(
+                  value: 'PD',
+                  groupValue: iqcTestResult,
+                  onChanged: (val) => setState(() => iqcTestResult = val),
+                ),
+                const Text('PD'),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text('DTC_RESULT:'),
+            Row(
+              children: [
+                Radio<String>(
+                  value: 'OK',
+                  groupValue: dtcResult,
+                  onChanged: (val) => setState(() => dtcResult = val),
+                ),
+                const Text('OK'),
+                Radio<String>(
+                  value: 'NG',
+                  groupValue: dtcResult,
+                  onChanged: (val) => setState(() => dtcResult = val),
+                ),
+                const Text('NG'),
+                Radio<String>(
+                  value: 'PD',
+                  groupValue: dtcResult,
+                  onChanged: (val) => setState(() => dtcResult = val),
+                ),
+                const Text('PD'),
               ],
             ),
             const SizedBox(height: 8),
@@ -394,7 +495,7 @@ class _IncomingDetailPageState extends State<IncomingDetailPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: isUpdating || (widget.data['CHECKSHEET'] == 'N' && pickedImage == null)
+                onPressed: isUpdating
                     ? null
                     : () => _updateIncomingData(widget.data['IQC1_ID'].toString()),
                 child: isUpdating

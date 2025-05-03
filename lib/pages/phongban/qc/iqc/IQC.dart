@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:mobile_erp/controller/GlobalFunction.dart';
+import 'package:mobile_erp/pages/LoginPage.dart';
 import 'package:mobile_erp/pages/phongban/qc/dtc/DangKyDTC.dart';
 import 'package:mobile_erp/pages/phongban/qc/iqc/IQC_ICM.dart';
 
@@ -8,7 +11,7 @@ class IQCPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4, // Số lượng tab, chỉnh lại theo nhu cầu
+      length: 5, // Số lượng tab, chỉnh lại theo nhu cầu
       child: Scaffold(
         appBar: AppBar(
           title: const Text('IQC'),
@@ -24,6 +27,7 @@ class IQCPage extends StatelessWidget {
               Tab(text: 'Nhập data Incoming'),
               Tab(text: 'Failing'),
               Tab(text: 'Holding'),
+              Tab(text: 'Logout'),
             ],
           ),
           flexibleSpace: Container(
@@ -50,12 +54,21 @@ class IQCPage extends StatelessWidget {
           ),
           width: double.infinity,
           height: double.infinity,
-          child: const TabBarView(
+          child: TabBarView(
             children: [
-              Center(child: const ReliabilityTestRegistrationForm()),
-              Center(child: const IncomingListPage()),
-              Center(child: Text('Nội dung Tab 3')),
-              Center(child: Text('Nội dung Tab 4')),
+              const Center(child: const ReliabilityTestRegistrationForm()),
+              const Center(child: const IncomingListPage()),
+              const Center(child: Text('Nội dung Tab 3')),
+              const Center(child: Text('Nội dung Tab 4')),
+              Center(
+                child: ElevatedButton(
+                  onPressed: () {
+                    GlobalFunction.logout();
+                    Get.off(() => const LoginPage());
+                  },
+                  child: const Text('Logout'),
+                ),
+              ),
             ],
           ),
         ),

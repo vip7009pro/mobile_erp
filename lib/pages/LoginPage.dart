@@ -6,6 +6,7 @@ import 'package:mobile_erp/controller/GlobalFunction.dart';
 import 'package:mobile_erp/controller/LocalDataAccess.dart';
 import 'package:mobile_erp/model/DataInterfaceClass.dart';
 import 'package:mobile_erp/pages/HomePage.dart';
+import 'package:mobile_erp/pages/phongban/qc/iqc/IQC.dart';
 import 'package:mobile_erp/pages/phongban/sx/NHATKYKT.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -90,7 +91,7 @@ Future<void> _loadAccount() async{
                     c.updateUserData(UserData.fromJson(rawJson));
                     userPosition = rawJson['POSITION_CODE'].toString();
                     if (userPosition == '4' || userPosition == '') {                     
-                      Get.off(() => const HomePage());
+                      Get.off(() => const IQCPage());
                     } else {                      
                       Get.off(() => const HomePage());
                     }

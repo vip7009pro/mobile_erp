@@ -34,6 +34,7 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
   final TextEditingController emplNoController = TextEditingController();
   final TextEditingController remarkController = TextEditingController();
   final TextEditingController idTestController = TextEditingController();
+  final TextEditingController lotVendorController = TextEditingController();
 
   // Checkbox group sample (now loaded from API)
   List<TestItemData> testItems = [];
@@ -153,7 +154,7 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
       'M_CODE': mCode,
       'M_LOT_NO': lotNvlController.text,
       'LOT_CMS': lotNvlController.text.substring(0,6),
-      'LOT_VENDOR': '',
+      'LOT_VENDOR': lotVendorController.text,
       'CUST_CD': cUST_CD,
       'EXP_DATE': '',
       'INPUT_LENGTH': 0,
@@ -335,6 +336,7 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
     emplNoController.dispose();
     remarkController.dispose();
     idTestController.dispose();
+    lotVendorController.dispose();
     super.dispose();
   }
 
@@ -438,6 +440,8 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
                 } else if (type == 'LOTNVL') {
                   lotNvlController.text = barcode;
                   _checkMaterialInfo(barcode);                  
+                } else if (type == 'LOT_VENDOR') {
+                  lotVendorController.text = barcode;
                 }
               });
               Navigator.pop(context);
@@ -533,6 +537,29 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
               if (!isChangeToMaterial && productName != null)
                 Text('Tên sản phẩm: $productName',
                   style: const TextStyle(fontSize: 16, color: Color.fromARGB(255, 1, 4, 197), fontWeight: FontWeight.bold),),
+              const SizedBox(height: 16),
+              // LOT_VENDOR input with scan button
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: lotVendorController,
+                      decoration: const InputDecoration(
+                        labelText: 'LOT_VENDOR',
+                        hintText: 'Nhập LOT_VENDOR',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.qr_code_scanner),
+                    tooltip: 'Scan LOT_VENDOR',
+                    onPressed: () {
+                      _showScannerDialog(type: 'LOT_VENDOR');
+                    },
+                  ),
+                ],
+              ),
               const SizedBox(height: 16),
               // EMPL_NO
               TextFormField(
