@@ -144,6 +144,7 @@ class _IncomingListPageState extends State<IncomingListPage> {
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Text('Lot Vendor: ${item['LOT_VENDOR_IQC'] ?? ''}'),
                               Text('Size: ${item['WIDTH_CD'] ?? ''}'),
                               Text(
                                 'Tổng kết quả: ${item['TOTAL_RESULT'] ?? ''}',
