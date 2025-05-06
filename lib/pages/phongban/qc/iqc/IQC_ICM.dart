@@ -30,7 +30,7 @@ class _IncomingListPageState extends State<IncomingListPage> {
 
   Future<void> _loadIncomingList() async {
     setState(() => isLoading = true);
-    final res = await API_Request.api_query('loadIQC1table', {
+    final res = await API_Request.api_query('loadIQC1Table_Mobile', {
       'FROM_DATE': '2020-01-01',
       'TO_DATE': '2100-01-01',
       'M_CODE': '',
@@ -263,6 +263,26 @@ class _IncomingDetailPageState extends State<IncomingDetailPage> {
     }
     return uploadResult;
   } 
+  
+  
+    Future<void> _updateQCPASS_IQC(String M_CODE, String LOT_CMS, String VALUE) async {
+    setState(() => isUpdating = true);
+    final res = await API_Request.api_query('updateQCPASSI222', {
+      'M_CODE': M_CODE,
+      'LOT_CMS': LOT_CMS,
+      'VALUE': VALUE,
+    });
+    setState(() => isUpdating = false);
+    if (res['tk_status'] == 'OK') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cập nhật QC PASS kho VL thành công!')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Cập nhật QC PASS kho VL thất bại!')),
+      );
+    }
+  }
 
 
   Future<void> _updateIncomingData(String IQC1_ID) async {
@@ -278,7 +298,8 @@ class _IncomingDetailPageState extends State<IncomingDetailPage> {
     });
     setState(() => isUpdating = false);
     if (res['tk_status'] == 'OK') {
-      ScaffoldMessenger.of(context).showSnackBar(
+       _updateQCPASS_IQC(widget.data['M_CODE'], widget.data['LOT_CMS'], totalResult=='OK' ? 'Y' : 'N');
+      ScaffoldMessenger.of(context).showSnackBar(       
         const SnackBar(content: Text('Cập nhật thành công!')),
       );
       Navigator.of(context).pop(true);
