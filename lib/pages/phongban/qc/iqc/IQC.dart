@@ -4,6 +4,7 @@ import 'package:mobile_erp/controller/GlobalFunction.dart';
 import 'package:mobile_erp/pages/LoginPage.dart';
 import 'package:mobile_erp/pages/phongban/qc/dtc/DangKyDTC.dart';
 import 'package:mobile_erp/pages/phongban/qc/iqc/IQC_ICM.dart';
+import 'package:mobile_erp/pages/phongban/qc/iqc/CheckIQCPASS.dart';
 
 class IQCPage extends StatelessWidget {
   const IQCPage({Key? key}) : super(key: key);
@@ -11,7 +12,7 @@ class IQCPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 5, // Số lượng tab, chỉnh lại theo nhu cầu
+      length: 6, // Số lượng tab, chỉnh lại theo nhu cầu
       child: Scaffold(
         appBar: AppBar(
           title: const Text('IQC'),
@@ -25,6 +26,7 @@ class IQCPage extends StatelessWidget {
             tabs: [
               Tab(text: 'Đăng ký độ tin cậy'),
               Tab(text: 'Nhập data Incoming'),
+              Tab(text: 'Check IQC PASS'),
               Tab(text: 'Failing'),
               Tab(text: 'Holding'),
               Tab(text: 'Logout'),
@@ -58,8 +60,9 @@ class IQCPage extends StatelessWidget {
             children: [
               const Center(child: const ReliabilityTestRegistrationForm()),
               const Center(child: const IncomingListPage()),
-              const Center(child: Text('Nội dung Tab 3')),
+              const CheckIQCPASS(),
               const Center(child: Text('Nội dung Tab 4')),
+              const Center(child: Text('Nội dung Tab 5')),
               Center(
                 child: ElevatedButton(
                   onPressed: () {
