@@ -44,6 +44,7 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
   bool isSupplement = false;
   bool isChangeToMaterial = false;
   bool isLoadingTestItems = false;
+  bool isNoTestDTC = false; // Thêm biến trạng thái cho checkbox "Không test ĐTC"
 
   // Biến lưu thông tin vật liệu/sản phẩm
   String? materialName, materialSize, productName, prodRequestDate="", gCode = "7A07540A", mCode = "B0000035", cUST_CD="6969";
@@ -342,10 +343,15 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
 
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      int dtcId = isChangeToMaterial ? await _getDtcIdForLotNvl(lotNvlController.text) : await _loadNextDtcId();
-      print('dtc_id $dtcId');
-      if (dtcId == -1) {
-        dtcId = await _loadNextDtcId();
+      int dtcId;
+      if (isNoTestDTC) {
+        dtcId = -1;
+      } else {
+        dtcId = isChangeToMaterial ? await _getDtcIdForLotNvl(lotNvlController.text) : await _loadNextDtcId();
+        print('dtc_id $dtcId');
+        if (dtcId == -1) {
+          dtcId = await _loadNextDtcId();
+        }
       }
       bool allSuccess = true;
       final List<String> skippedTestItems = [];
@@ -357,7 +363,7 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
           continue;
         }
 
-        final success = await _registerDtcTestItem(
+        final success = isNoTestDTC ? true : await _registerDtcTestItem(
           dtcId: dtcId, // dùng chung DTC_ID cho tất cả test item
           testItemCode: itemCode,
           testType: selectedTestType!,
@@ -376,7 +382,7 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
         final item = testItems.firstWhereOrNull((e) => e.tESTCODE?.toString() == code);
         return item?.tEST_NAME ?? code;
       }
-      if (skippedTestItems.length == selectedTestItems.length) {
+      if (skippedTestItems.length == selectedTestItems.length && !isNoTestDTC) {
         final skippedTestNames = skippedTestItems.map((code) => getTestNameByCode(code)).toList();
         AwesomeDialog(
           context: context,
@@ -573,15 +579,30 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
               ),
               const SizedBox(height: 16),
 
+
+
              
 
-              // Checkbox group cho các hạng mục test
+              // Checkbox "Không test ĐTC"
+              CheckboxListTile(
+                title: const Text('Không test ĐTC'),
+                value: isNoTestDTC,
+                onChanged: (val) {
+                  setState(() {
+                    isNoTestDTC = val ?? false;
+                    if (isNoTestDTC) {
+                      selectedTestItems.clear();
+                    }
+                  });
+                },
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
               const Text('Chọn các hạng mục test:', style: TextStyle(fontWeight: FontWeight.bold)),
               ...testItems.map((item) => CheckboxListTile(
                     contentPadding: EdgeInsets.zero,                    
                     value: selectedTestItems.contains(item.tESTCODE?.toString()),
                     title: Text(item.tEST_NAME ?? ''),
-                    onChanged: (checked) {
+                    onChanged: isNoTestDTC ? null : (checked) {
                       setState(() {
                         final codeStr = item.tESTCODE?.toString();
                         if (checked == true) {
