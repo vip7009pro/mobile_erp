@@ -72,12 +72,13 @@ class _IncomingListPageState extends State<IncomingListPage> {
     });
     showDialog(
       context: context,
-      builder:
-          (_) => AlertDialog(
-            content: SizedBox(
-              width: 300,
-              height: 400,
-              child: MobileScanner(
+      builder: (_) => AlertDialog(
+        content: SizedBox(
+          width: 300,
+          height: 400,
+          child: Stack(
+            children: [
+              MobileScanner(
                 controller: cameraController,
                 onDetect: (capture) {
                   final barcode = capture.barcodes.first.rawValue;
@@ -91,21 +92,44 @@ class _IncomingListPageState extends State<IncomingListPage> {
                   }
                 },
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  setState(() {
-                    isScannerOpen = false;
-                  });
-                },
-                child: const Text('Cancel'),
+              Positioned(
+                bottom: 16,
+                right: 16,
+                child: FloatingActionButton(
+                  mini: true,
+                  heroTag: 'focus_button',
+                  backgroundColor: Colors.white,
+                  child: const Icon(Icons.center_focus_strong, color: Colors.blue),
+                  tooltip: 'Làm nét lại (Focus)',
+                  onPressed: () async {
+                    try {
+                      await cameraController.start(); // Gọi lại start để trigger lại focus
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Không thể focus lại: $e')),
+                      );
+                    }
+                  },
+                ),
               ),
             ],
           ),
+        ),
+        actions: [                
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                isScannerOpen = false;
+              });
+            },
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
     );
   }
+
   @override
   void dispose() {
     filterController.dispose();

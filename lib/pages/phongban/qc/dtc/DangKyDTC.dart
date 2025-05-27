@@ -19,6 +19,9 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
   final _formKey = GlobalKey<FormState>();
   final GlobalController c = Get.put(GlobalController());
 
+  // MobileScanner controller cho nút focus camera
+  final MobileScannerController cameraController = MobileScannerController();
+
   // Dropdown options
   final List<Map<String, dynamic>> testTypes = [
     {'value': 1, 'text': 'FIRST_LOT'},
@@ -330,8 +333,10 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
     }
   }
 
+  // Không cần initState cho cameraController vì đã khai báo final ở trên
   @override
   void dispose() {
+    cameraController.dispose();
     ycsxController.dispose();
     lotNvlController.dispose();
     emplNoController.dispose();
@@ -436,22 +441,47 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
         content: SizedBox(
           width: 300,
           height: 400,
-          child: MobileScanner(
-            onDetect: (capture) {
-              final barcode = capture.barcodes.first.rawValue ?? '';
-              setState(() {
-                if (type == 'YCSX') {
-                  ycsxController.text = barcode;
-                  _checkProductInfo(barcode);                  
-                } else if (type == 'LOTNVL') {
-                  lotNvlController.text = barcode;
-                  _checkMaterialInfo(barcode);                  
-                } else if (type == 'LOT_VENDOR') {
-                  lotVendorController.text = barcode;
-                }
-              });
-              Navigator.pop(context);
-            },
+          child: Stack(
+            children: [
+              MobileScanner(
+                controller: cameraController,
+                onDetect: (capture) {
+                  final barcode = capture.barcodes.first.rawValue ?? '';
+                  setState(() {
+                    if (type == 'YCSX') {
+                      ycsxController.text = barcode;
+                      _checkProductInfo(barcode);                  
+                    } else if (type == 'LOTNVL') {
+                      lotNvlController.text = barcode;
+                      _checkMaterialInfo(barcode);                  
+                    } else if (type == 'LOT_VENDOR') {
+                      lotVendorController.text = barcode;
+                    }
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              Positioned(
+                bottom: 16,
+                right: 16,
+                child: FloatingActionButton(
+                  mini: true,
+                  heroTag: 'focus_button_dtc',
+                  backgroundColor: Colors.white,
+                  child: const Icon(Icons.center_focus_strong, color: Colors.blue),
+                  tooltip: 'Làm nét lại (Focus)',
+                  onPressed: () async {
+                    try {
+                      await cameraController.start();
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Không thể focus lại: $e')),
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
         ),
         actions: [
