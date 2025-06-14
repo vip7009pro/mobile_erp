@@ -1,7 +1,18 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:asn1lib/asn1lib.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:mobile_erp/model/DataInterfaceClass.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:pointycastle/api.dart';
+import 'package:pointycastle/asymmetric/api.dart';
+import 'package:pointycastle/asymmetric/oaep.dart';
+import 'package:pointycastle/asymmetric/rsa.dart';
+import 'package:pointycastle/block/aes_fast.dart' show AESFastEngine;
+import 'package:pointycastle/block/modes/gcm.dart';
+import 'package:pointycastle/export.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 class GlobalFunction {  
   static void logout() async {
@@ -61,6 +72,107 @@ static String MyDate(String format, String datetimedata) {
       return '${formatter.format(totalPOAmount / 1000000000)}B';
     }
   }
+
+ static Future<Map<String, String>> encryptData(String publicKeyPem, Map<String, dynamic> sendingData) async {
+  try {
+    // Chuyển sendingData thành chuỗi JSON
+    final dataString = jsonEncode(sendingData);
+    final dataBytes = Uint8List.fromList(utf8.encode(dataString));
+    print('Data bytes length: ${dataBytes.length}');
+
+    // Tạo khóa AES ngẫu nhiên
+    final secureRandom = FortunaRandom();
+    secureRandom.seed(KeyParameter(Uint8List.fromList(List.generate(32, (i) => DateTime.now().microsecondsSinceEpoch % 256))));
+    final aesKey = secureRandom.nextBytes(32); // 256-bit key
+    print('AES key: ${base64Encode(aesKey)}');
+
+    // Tạo IV cho AES-GCM
+    final iv = secureRandom.nextBytes(12); // 12 bytes IV for GCM
+    print('IV: ${base64Encode(iv)}');
+
+    // Mã hóa dữ liệu bằng AES-GCM
+    final gcm = GCMBlockCipher(AESEngine());
+    final params = AEADParameters(
+      KeyParameter(aesKey),
+      128, // Tag length (128 bits = 16 bytes)
+      iv,
+      Uint8List(0), // Additional data (không dùng)
+    );
+    gcm.init(true, params);
+    final encryptedData = gcm.process(dataBytes);
+    print('Encrypted data: ${base64Encode(encryptedData)}');
+
+    // Parse publicKey từ PEM
+    final publicKey = parsePemPublicKey(publicKeyPem);
+
+    // Mã hóa khóa AES bằng RSA-OAEP với SHA-256
+    final rsaEngine = OAEPEncoding.withCustomDigest(() => SHA256Digest(), RSAEngine())
+      ..init(true, PublicKeyParameter<RSAPublicKey>(publicKey));
+    final encryptedKey = rsaEngine.process(aesKey);
+    print('Encrypted key: ${base64Encode(encryptedKey)}');
+
+    // Chuyển thành base64
+    return {
+      'encryptedData': base64Encode(encryptedData),
+      'encryptedKey': base64Encode(encryptedKey),
+      'iv': base64Encode(iv),
+    };
+  } catch (e) {
+    print('Encryption error: $e');
+    throw Exception('Failed to encrypt data: $e');
+  }
+}
+
+// Hàm parse publicKey từ PEM
+static RSAPublicKey parsePemPublicKey(String pem) {
+  try {
+    final pemClean = pem
+        .replaceAll('-----BEGIN PUBLIC KEY-----', '')
+        .replaceAll('-----END PUBLIC KEY-----', '')
+        .replaceAll(RegExp(r'\s+'), '');
+    print('Cleaned PEM: $pemClean');
+
+    final keyBytes = base64Decode(pemClean);
+    print('Key bytes length: ${keyBytes.length}');
+
+    final parser = ASN1Parser(keyBytes);
+    final topLevelSeq = parser.nextObject();
+    if (topLevelSeq is! ASN1Sequence) {
+      throw Exception('Invalid PEM: Expected ASN1Sequence');
+    }
+
+    // SPKI: topLevelSeq[0] là algorithm (ASN1Sequence), topLevelSeq[1] là subjectPublicKey (ASN1BitString)
+    final algorithmSeq = topLevelSeq.elements[0];
+    if (algorithmSeq is! ASN1Sequence) {
+      throw Exception('Invalid PEM: Expected algorithm ASN1Sequence');
+    }
+
+    final bitString = topLevelSeq.elements[1];
+    if (bitString is! ASN1BitString) {
+      throw Exception('Invalid PEM: Expected ASN1BitString');
+    }
+
+    final rsaKeyParser = ASN1Parser(bitString.contentBytes());
+    final rsaKeySeq = rsaKeyParser.nextObject();
+    if (rsaKeySeq is! ASN1Sequence) {
+      throw Exception('Invalid PEM: Expected RSA key ASN1Sequence');
+    }
+
+    // Lấy modulus và exponent
+    final modulus = (rsaKeySeq.elements[0] as ASN1Integer).valueAsBigInteger;
+    final exponent = (rsaKeySeq.elements[1] as ASN1Integer).valueAsBigInteger;
+    if (modulus == null || exponent == null) {
+      throw Exception('Invalid PEM: Missing modulus or exponent');
+    }
+
+    return RSAPublicKey(modulus, exponent);
+  } catch (e) {
+    print('Public key parsing error: $e');
+    throw Exception('Invalid public key format: $e');
+  }
+}
+
+
 }
 bool CheckPermission(UserData userData, List<String> permittedMainDept,
     List<String> permittedPosition, List<String> permittedEmpl, void Function() func) {

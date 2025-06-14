@@ -52,14 +52,17 @@ Future<void> _loadAccount() async{
     API_Request.api_query('login2', {'user': _user, 'pass': _pass, 'CTR_CD':'002'})
         .then((value) => {
               setState((() {
+                print(value.toString());
                 if (value['tk_status'] == 'ok') {
                   LocalDataAccess.saveVariable('token', value['token_content']);
                   if (_saveAccount) {
                     LocalDataAccess.saveVariable('user', _user);
                     LocalDataAccess.saveVariable('pass', _pass);
+                    LocalDataAccess.saveVariable('publicKey', value['publicKey']);
                   } else {
                     LocalDataAccess.saveVariable('user', '');
                     LocalDataAccess.saveVariable('pass', '');
+                    LocalDataAccess.saveVariable('publicKey', '');
                   }
                   _checklogin(context);
                 } else {

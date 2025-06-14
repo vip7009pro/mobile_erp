@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:mobile_erp/controller/LocalDataAccess.dart';
+import 'package:mobile_erp/controller/GlobalFunction.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
@@ -31,7 +32,10 @@ class API_Request {
     String savedToken = await LocalDataAccess.getVariable("token");
     data['token_string'] = savedToken;
     data['CTR_CD'] = '002';
-    final body = {'command': command, 'DATA': data};
+    final String publicKey = await LocalDataAccess.getVariable("publicKey");
+    print('publicKey:' + publicKey);    
+    final finalData = command =='login2' ? data : await GlobalFunction.encryptData(publicKey, data);
+    final body = {'command': command, 'DATA': finalData};
     try {
       final response = await dio.post(url, data: jsonEncode(body));
       if (response.statusCode == 200) {
@@ -74,7 +78,7 @@ class API_Request {
       'filename': filename,
       /* 'filename': file.path.split('/').last, */
       'uploadfoldername': uploadfoldername,
-      'token_string': savedToken,
+      'token_string': savedToken,      
     });    
 
     try {
@@ -124,7 +128,7 @@ class API_Request {
       "filename": filename,
       "uploadfoldername": uploadfoldername,
       "token_string": await LocalDataAccess.getVariable('token'), // Assuming you have a method to get the token      
-      "CTR_CD": "002"
+      "CTR_CD": "002",      
     });
 
     if (filenamelist != null) {
