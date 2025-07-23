@@ -293,14 +293,16 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
   // Hàm kiểm tra các test item đã từng test theo LOT NVL
   Future<void> _loadTestedItemsByM_CODE(String M_CODE) async {
     //print('M_CODE: '+ M_CODE);
-    if (M_CODE.length ==8) {
+    if (M_CODE.length >=7 && M_CODE.length <=8) {
       final res = await API_Request.api_query('lichSuTestM_CODE', {'M_CODE': M_CODE});
       if (res['tk_status'] == 'OK' && res['data'] != null) {
         final List<String> testedCodes = res['data'].map<String>((e) => e['TEST_CODE'].toString()).toList();
+        print('testedCodes: '+ testedCodes.toString());
         setState(() {
           selectedTestItems = testedCodes;
         });
       } else {
+        print('res: '+ res.toString());
         setState(() {
           selectedTestItems = [];
         });

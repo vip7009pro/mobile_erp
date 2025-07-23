@@ -81,7 +81,7 @@ Future<void> tryOtaUpdate() async {
   }
   final logo = Image.asset('assets/images/cmslogo.jpg', width: 120, fit: BoxFit.cover);
 
-  int mobileVer =12; 
+  int mobileVer =13; 
   late Timer _timer;
 
  Future<bool> _checkMobileVer() async {
