@@ -32,10 +32,11 @@ class API_Request {
     String savedToken = await LocalDataAccess.getVariable("token");
     data['token_string'] = savedToken;
     data['CTR_CD'] = '002';
+    data['COMPANY'] = 'CMS';
     final String publicKey = await LocalDataAccess.getVariable("publicKey");
     print('publicKey:' + publicKey);    
     final finalData = command =='login2' ? data : await GlobalFunction.encryptData(publicKey, data);
-    final body = {'command': command, 'DATA': finalData};
+    final body = {'command': command, 'DATA': finalData, 'secureContext': true};
     try {
       final response = await dio.post(url, data: jsonEncode(body));
       if (response.statusCode == 200) {
