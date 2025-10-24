@@ -317,9 +317,16 @@ void initState() {
                   onTap: () {
                      if (!CheckPermission(c.userData, ['KD'],
                         ['Manager', 'AM', 'Senior', 'Staff'], ['ALL'], () {
-                      Get.to(() => const QuanLyPhongBanNhanSu());
+                      Get.to(() => const QuanLyPo());
                     })) {
-                    Get.to(()=> const QuanLyPo());
+                     AwesomeDialog(
+                        context: context,
+                        dialogType: DialogType.error,
+                        animType: AnimType.topSlide,
+                        title: 'Cảnh báo',
+                        desc: 'Không đủ quyền hạn!',
+                        btnCancelOnPress: () {},
+                      ).show();
                     }
                     //action on press
                   },

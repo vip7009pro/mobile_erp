@@ -44,6 +44,22 @@ class _QuanLyPoState extends State<QuanLyPo> {
   final TextEditingController _overDueController = TextEditingController();
   final TextEditingController _invoiceNoController = TextEditingController();
   List<PODATA> _poDataTable = List.empty();
+  List<CodeListData> _allCodes = <CodeListData>[];
+  bool _codesLoading = false;
+
+  Future<void> _loadAllCodes() async {
+    setState(() => _codesLoading = true);
+    await API_Request.api_query('selectcodeList', {'G_NAME': ''}).then((value) {
+      if (value['tk_status'] == 'OK') {
+        List<dynamic> dynamicList = value['data'];
+        setState(() {
+          _allCodes = dynamicList.map((dynamic item) => CodeListData.fromJson(item)).toList();
+        });
+      }
+    }).whenComplete(() {
+      if (mounted) setState(() => _codesLoading = false);
+    });
+  }
   Future<void> _loadPOData() async {
     await API_Request.api_query('traPODataFull', {
       'alltime': _allTime,
@@ -502,6 +518,7 @@ class _QuanLyPoState extends State<QuanLyPo> {
         GlobalFunction.MyDate('yyyy-MM-dd', _fromDate.toString());
     _toDateController.text =
         GlobalFunction.MyDate('yyyy-MM-dd', _toDate.toString());
+    _loadAllCodes();
     super.initState();
   }
 
@@ -512,7 +529,9 @@ class _QuanLyPoState extends State<QuanLyPo> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () {
+            onPressed: _codesLoading
+                ? null
+                : () {
               PODATA newpo = PODATA(
                 pOID: 0,
                 cUSTNAMEKD: '',
@@ -544,7 +563,17 @@ class _QuanLyPoState extends State<QuanLyPo> {
                 fINAL: '',
 
               );              
-              Get.to(() => PoDetail(currentPO: newpo));
+              if (_allCodes.isEmpty) {
+                AwesomeDialog(
+                  context: context,
+                  dialogType: DialogType.info,
+                  animType: AnimType.rightSlide,
+                  title: 'Đang tải mã sản phẩm',
+                  desc: 'Vui lòng đợi hệ thống tải danh sách code...'
+                ).show();
+                return;
+              }
+              Get.to(() => PoDetail(currentPO: newpo, allCodes: _allCodes));
             },
           ),
         ],
@@ -568,6 +597,11 @@ class _QuanLyPoState extends State<QuanLyPo> {
       ),
       body: Column(
         children: [
+          if (_codesLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: LinearProgressIndicator(),
+            ),
           _showPOInfo(),
           const Divider(),
           Expanded(
@@ -762,7 +796,17 @@ class _QuanLyPoState extends State<QuanLyPo> {
                 );
                 return GestureDetector(
                   onTap: () {
-                    Get.to(() => PoDetail(currentPO: _poDataTable[index]));
+                    if (_codesLoading || _allCodes.isEmpty) {
+                      AwesomeDialog(
+                        context: context,
+                        dialogType: DialogType.info,
+                        animType: AnimType.rightSlide,
+                        title: 'Đang tải mã sản phẩm',
+                        desc: 'Vui lòng đợi hệ thống tải danh sách code...'
+                      ).show();
+                      return;
+                    }
+                    Get.to(() => PoDetail(currentPO: _poDataTable[index], allCodes: _allCodes));
                   },
                   child: Container(
                       margin: const EdgeInsets.all(2.0),

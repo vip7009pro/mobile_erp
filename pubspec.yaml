@@ -39,6 +39,8 @@ dependencies:
   pointycastle: ^4.0.0
   asn1lib: ^1.6.4
   convert: ^3.1.2
+  google_ml_kit: ^0.20.0
+  path_provider: ^2.1.1
 
 dev_dependencies:
   flutter_test:
@@ -50,5 +52,6 @@ flutter:
 
   uses-material-design: true
   assets:
+  - assets/mock/
   - assets/images/
   - assets/sound/

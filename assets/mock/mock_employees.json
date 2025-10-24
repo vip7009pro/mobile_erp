@@ -1,0 +1,11 @@
+{
+  "employees": [
+    {
+      "id": 1,
+      "name": "Nguyễn Văn A",
+      "email": "a@example.com",
+      "faceImage": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD...",
+      "attendance": []
+    }
+  ]
+}
