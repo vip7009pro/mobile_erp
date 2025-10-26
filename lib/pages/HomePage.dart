@@ -20,7 +20,7 @@ import 'package:get/get.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:async';
 import 'package:ota_update/ota_update.dart';
-
+import 'package:mobile_erp/pages/screens/DiemDanhCamScreen.dart';
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
   @override
@@ -199,6 +199,30 @@ void initState() {
                     if (!CheckPermission(c.userData, ['ALL'],
                         ['Manager', 'AM', 'Senior', 'Staff'], ['ALL'], () {
                       Get.to(() => const DiemDanhNhom());
+                    })) {
+                      AwesomeDialog(
+                        context: context,
+                        dialogType: DialogType.error,
+                        animType: AnimType.topSlide,
+                        title: 'Cảnh báo',
+                        desc: 'Không đủ quyền hạn!',
+                        btnCancelOnPress: () {},
+                      ).show();
+                    }
+                  },
+                ),                
+                ListTile(
+                  visualDensity: const VisualDensity(vertical: -3),
+                  leading: const FaIcon(
+                    FontAwesomeIcons.check,
+                    color: Colors.green,
+                  ),
+                  title: const Text("Điểm danh camera"),
+                  onTap: () {
+                    //action on press
+                    if (!CheckPermission(c.userData, ['ALL'],
+                        ['Manager', 'AM', 'Senior', 'Staff'], ['ALL'], () {
+                      Get.to(() => const DiemDanhCamScreen());
                     })) {
                       AwesomeDialog(
                         context: context,

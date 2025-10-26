@@ -1,0 +1,2 @@
+D:/Apps/mobile_erp/android/app/.cxx/RelWithDebInfo/6r52174d/x86_64/CMakeFiles/edit_cache.dir
+D:/Apps/mobile_erp/android/app/.cxx/RelWithDebInfo/6r52174d/x86_64/CMakeFiles/rebuild_cache.dir

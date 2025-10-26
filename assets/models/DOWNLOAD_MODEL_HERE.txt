@@ -1,0 +1,23 @@
+========================================
+  QUAN TRỌNG: TẢI MODEL TRƯỚC KHI CHẠY
+========================================
+
+Bạn cần tải file model TFLite và đặt vào thư mục này.
+
+TÊN FILE: mobilefacenet.tflite
+
+NGUỒN TẢI:
+1. GitHub - MobileFaceNet:
+   https://github.com/sirius-ai/MobileFaceNet_TF/releases
+
+2. InsightFace:
+   https://github.com/deepinsight/insightface
+
+3. Hoặc sử dụng model tự train
+
+SAU KHI TẢI:
+- Đặt file vào: assets/models/mobilefacenet.tflite
+- Chạy: flutter clean && flutter pub get
+- Build lại app
+
+CHI TIẾT: Xem file README.md trong thư mục này
