@@ -394,16 +394,16 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
     }
     
     print('=== Starting face recognition ===');
-    _showDebugDialog('Face Recognition', 'Starting face recognition...');
+    //_showDebugDialog('Face Recognition', 'Starting face recognition...');
     _isProcessing = true;
     _lastDetectionTime = DateTime.now();
     print('Last detection time: $_lastDetectionTime');
-    _showDebugDialog('Face Recognition', 'Last detection time: $_lastDetectionTime');
+    //_showDebugDialog('Face Recognition', 'Last detection time: $_lastDetectionTime');
 
     try {
       // Extract face embedding
       print('Extracting face embedding...');
-      _showDebugDialog('Face Recognition', 'Extracting face embedding...');
+      //_showDebugDialog('Face Recognition', 'Extracting face embedding...');
       final embedding = await _extractFaceEmbedding(cameraImage, face);
       
       if (embedding == null) {
@@ -417,11 +417,11 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
         return;
       }
       print('✓ Face embedding extracted successfully');
-      _showDebugDialog('Face Recognition', 'Face embedding extracted successfully');
+      //_showDebugDialog('Face Recognition', 'Face embedding extracted successfully');
 
       // Gọi API để check và điểm danh
       print('Calling API for attendance check...');
-      _showDebugDialog('Face Recognition', 'Calling API for attendance check...');
+      //_showDebugDialog('Face Recognition', 'Calling API for attendance check...');
       setState(() {
         _statusMessage = 'Đang kiểm tra với database...';
         _statusColor = Colors.blue;
@@ -429,11 +429,11 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
 
       final result = await _checkAttendanceWithAPI(embedding);
       print('API response: $result');
-      _showDebugDialog('Face Recognition', 'API response: ${result['tk_status']}');
+      //_showDebugDialog('Face Recognition', 'API response: ${result['tk_status']}');
 
       if (result['tk_status'] == 'OK') {
         print('Attendance successful: ${result['message']}');
-        _showDebugDialog('Face Recognition', 'Attendance successful: ${result['message']}');
+        //_showDebugDialog('Face Recognition', 'Attendance successful: ${result['message']}');
         setState(() {
           _statusMessage = 'Điểm danh thành công! ${result['message'] ?? ''}';
           _statusColor = Colors.green;
@@ -443,7 +443,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
         _showSuccessDialog(result);
       } else {
         print('Recognition failed: ${result['message']}');
-        _showDebugDialog('Face Recognition', 'Recognition failed: ${result['message']}');
+        //_showDebugDialog('Face Recognition', 'Recognition failed: ${result['message']}');
         setState(() {
           _statusMessage = 'Không nhận diện được: ${result['message'] ?? 'Không tìm thấy trong database'}';
           _statusColor = Colors.red;
@@ -460,7 +460,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
 
     // Reset sau 3 giây
     print('Scheduling reset after 3 seconds...');
-    _showDebugDialog('Face Recognition', 'Scheduling reset after 3 seconds...');
+    //_showDebugDialog('Face Recognition', 'Scheduling reset after 3 seconds...');
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         setState(() {
@@ -470,7 +470,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       }
       _isProcessing = false;
       print('✓ Reset completed, ready for next detection');
-      _showDebugDialog('Face Recognition', 'Reset completed, ready for next detection');
+      //_showDebugDialog('Face Recognition', 'Reset completed, ready for next detection');
     });
   }
 
@@ -478,13 +478,13 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
   Future<Map<String, dynamic>> _checkAttendanceWithAPI(List<double> embedding) async {
     try {
       print('Sending API request for face recognition...');
-      _showDebugDialog('API', 'Sending API request for face recognition...');
+      //_showDebugDialog('API', 'Sending API request for face recognition...');
       final response = await API_Request.api_query('recognizeface', {
         'FACE_ID': embedding,
         'timestamp': DateTime.now().toIso8601String(),
       });
       print('API response received: ${response['tk_status']}');
-      _showDebugDialog('API', 'API response received: ${response['tk_status']}');
+      //_showDebugDialog('API', 'API response received: ${response['tk_status']}');
       return response;
     } catch (e) {
       print('Error connecting to API: $e');
@@ -499,16 +499,16 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
   // Hiển thị dialog thành công
   void _showSuccessDialog(Map<String, dynamic> result) {
     print('Showing success dialog...');
-    print('Dialog content: Employee=${result['employee_name']}, Code=${result['employee_code']}, Time=${result['attendance_time']}');
-    _showDebugDialog('Success Dialog', 'Employee: ${result['employee_name'] ?? 'N/A'}, Code: ${result['employee_code'] ?? 'N/A'}, Time: ${result['attendance_time'] ?? DateTime.now().toString()}');
+    print('Dialog content: Employee=${result['employee_name']}, Code=${result['employee_code']}, Time=${result['data']['EMPL_NO']}');
+    _showDebugDialog('Success Dialog', 'Employee: ${result['data']['EMPL_NO'] ?? 'N/A'}, Code: ${result['data']['EMPL_NO'] ?? 'N/A'}}');
     AwesomeDialog(
       context: context,
       dialogType: DialogType.success,
       animType: AnimType.rightSlide,
       title: 'Điểm danh thành công',
-      desc: 'Nhân viên: ${result['employee_name'] ?? 'N/A'}\n'
-          'Mã NV: ${result['employee_code'] ?? 'N/A'}\n'
-          'Thời gian: ${result['attendance_time'] ?? DateTime.now().toString()}',
+      desc: 'Nhân viên: ${result['data']['EMPL_NO'] ?? 'N/A'}\n'
+          'Mã NV: ${result['data']['EMPL_NO'] ?? 'N/A'}\n'
+          'Thời gian: ${result['data']['EMPL_NO'] ?? DateTime.now().toString()}',
       btnOkOnPress: () {},
     ).show();
   }
@@ -517,7 +517,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
   Future<void> _processCameraImage(CameraImage cameraImage) async {
     if (_isDetecting || _isProcessing) {
       print('Skipping image processing: Detecting=$_isDetecting, Processing=$_isProcessing');
-      _showDebugDialog('Process Image', 'Skipping: Detecting=$_isDetecting, Processing=$_isProcessing');
+      //_showDebugDialog('Process Image', 'Skipping: Detecting=$_isDetecting, Processing=$_isProcessing');
       return;
     }
     
@@ -525,18 +525,18 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       final timeSinceLastDetection = DateTime.now().difference(_lastDetectionTime!);
       if (timeSinceLastDetection.inSeconds < _detectionCooldownSeconds) {
         print('Cooldown active: ${timeSinceLastDetection.inSeconds}s since last detection');
-        _showDebugDialog('Process Image', 'Cooldown active: ${timeSinceLastDetection.inSeconds}s');
+        //_showDebugDialog('Process Image', 'Cooldown active: ${timeSinceLastDetection.inSeconds}s');
         return;
       }
     }
 
     _isDetecting = true;
     print('=== Processing camera image ===');
-    _showDebugDialog('Process Image', 'Processing camera image...');
+    //_showDebugDialog('Process Image', 'Processing camera image...');
 
     try {
       print('Converting camera image to InputImage...');
-      _showDebugDialog('Process Image', 'Converting camera image to InputImage...');
+      //_showDebugDialog('Process Image', 'Converting camera image to InputImage...');
       final inputImage = _convertCameraImage(cameraImage);
       if (inputImage == null) {
         print('Failed to convert camera image');
@@ -546,10 +546,10 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       }
 
       print('Detecting faces...');
-      _showDebugDialog('Process Image', 'Detecting faces...');
+      //_showDebugDialog('Process Image', 'Detecting faces...');
       final faces = await _faceDetector!.processImage(inputImage);
       print('Detected ${faces.length} faces');
-      _showDebugDialog('Process Image', 'Detected ${faces.length} faces');
+      //_showDebugDialog('Process Image', 'Detected ${faces.length} faces');
 
       if (faces.isNotEmpty && !_isProcessing) {
         setState(() {
@@ -558,14 +558,14 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
           _statusColor = Colors.orange;
         });
         print('Processing first detected face...');
-        _showDebugDialog('Process Image', 'Processing first detected face...');
+        //_showDebugDialog('Process Image', 'Processing first detected face...');
         await _processFaceRecognition(cameraImage, faces.first);
       } else if (faces.isNotEmpty) {
         setState(() {
           _faces = faces;
         });
         print('Faces detected but processing skipped due to _isProcessing=true');
-        _showDebugDialog('Process Image', 'Faces detected but processing skipped');
+        //_showDebugDialog('Process Image', 'Faces detected but processing skipped');
       } else {
         setState(() {
           _faces = faces;
@@ -575,7 +575,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
           }
         });
         print('No faces detected');
-        _showDebugDialog('Process Image', 'No faces detected');
+        //_showDebugDialog('Process Image', 'No faces detected');
       }
     } catch (e, stackTrace) {
       print('Error processing image: $e');
@@ -585,7 +585,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
 
     _isDetecting = false;
     print('✓ Image processing completed');
-    _showDebugDialog('Process Image', 'Image processing completed');
+    //_showDebugDialog('Process Image', 'Image processing completed');
   }
 
   // Show error dialog
@@ -608,7 +608,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
   @override
   Widget build(BuildContext context) {
     print('Building UI, camera initialized: $_isCameraInitialized');
-    _showDebugDialog('UI Build', 'Building UI, camera initialized: $_isCameraInitialized');
+    //_showDebugDialog('UI Build', 'Building UI, camera initialized: $_isCameraInitialized');
     return Scaffold(
       appBar: AppBar(
         title: const Text('Điểm danh bằng khuôn mặt'),
