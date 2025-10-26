@@ -39,6 +39,8 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
   @override
   void initState() {
     super.initState();
+    print('=== Initializing DiemDanhCamScreen ===');
+    _showDebugDialog('Init', 'Initializing DiemDanhCamScreen');
     _initializeCamera();
     _initializeFaceDetector();
     _loadModel();
@@ -46,17 +48,40 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
 
   @override
   void dispose() {
+    print('=== Disposing DiemDanhCamScreen ===');
+    _showDebugDialog('Dispose', 'Disposing DiemDanhCamScreen');
     _cameraController?.dispose();
     _faceDetector?.close();
     _interpreter?.close();
     super.dispose();
   }
 
+  // Show debug dialog
+  void _showDebugDialog(String title, String message) {
+    if (!mounted) {
+      print('Cannot show debug dialog: Widget not mounted');
+      return;
+    }
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.info,
+      animType: AnimType.scale,
+      title: 'Debug: $title',
+      desc: message,
+      autoHide: const Duration(seconds: 2), // Auto dismiss after 2 seconds
+      btnOkOnPress: () {},
+      btnOkText: 'OK',
+    ).show();
+  }
+
   // Load MobileFaceNet model
   Future<void> _loadModel() async {
     try {
+      print('Loading MobileFaceNet model...');
+      _showDebugDialog('Load Model', 'Loading MobileFaceNet model...');
       _interpreter = await Interpreter.fromAsset('assets/models/mobilefacenet.tflite');
       print('✓ MobileFaceNet model loaded successfully');
+      _showDebugDialog('Load Model', 'MobileFaceNet model loaded successfully');
     } catch (e) {
       print('Error loading model: $e');
       _showErrorDialog('Lỗi Model', 'Không thể tải MobileFaceNet: $e');
@@ -66,13 +91,16 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
   // Khởi tạo camera
   Future<void> _initializeCamera() async {
     try {
+      print('Initializing camera...');
+      _showDebugDialog('Camera', 'Initializing camera...');
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
+        print('No cameras found');
+        _showErrorDialog('Lỗi Camera', 'Không tìm thấy camera trên thiết bị');
         setState(() {
           _statusMessage = 'Không tìm thấy camera';
           _statusColor = Colors.red;
         });
-        _showErrorDialog('Lỗi Camera', 'Không tìm thấy camera trên thiết bị');
         return;
       }
 
@@ -80,6 +108,8 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
         (camera) => camera.lensDirection == CameraLensDirection.front,
         orElse: () => cameras.first,
       );
+      print('Selected camera: ${frontCamera.name}, Lens: ${frontCamera.lensDirection}');
+      _showDebugDialog('Camera', 'Selected camera: ${frontCamera.name}, Lens: ${frontCamera.lensDirection}');
 
       _cameraController = CameraController(
         frontCamera,
@@ -88,6 +118,8 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
         imageFormatGroup: ImageFormatGroup.nv21,
       );
 
+      print('Initializing camera controller...');
+      _showDebugDialog('Camera', 'Initializing camera controller...');
       await _cameraController!.initialize();
 
       if (!mounted) return;
@@ -98,24 +130,29 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
         _statusColor = Colors.green;
       });
 
+      print('Starting image stream...');
+      _showDebugDialog('Camera', 'Starting image stream...');
       _cameraController!.startImageStream(_processCameraImage);
       
       print('✓ Camera initialized successfully');
       print('✓ Face detector ready');
       print('✓ Image stream started');
+      _showDebugDialog('Camera', 'Camera initialized successfully');
     } catch (e, stackTrace) {
       print('Error initializing camera: $e');
       print('Stack trace: $stackTrace');
+      _showErrorDialog('Lỗi Khởi tạo Camera', 'Chi tiết: $e');
       setState(() {
         _statusMessage = 'Lỗi khởi tạo camera: $e';
         _statusColor = Colors.red;
       });
-      _showErrorDialog('Lỗi Khởi tạo Camera', 'Chi tiết: $e');
     }
   }
 
   // Khởi tạo face detector
   void _initializeFaceDetector() {
+    print('Initializing face detector...');
+    _showDebugDialog('Face Detector', 'Initializing face detector...');
     final options = FaceDetectorOptions(
       enableContours: true,
       enableClassification: true,
@@ -124,6 +161,8 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       performanceMode: FaceDetectorMode.accurate,
     );
     _faceDetector = FaceDetector(options: options);
+    print('✓ Face detector initialized');
+    _showDebugDialog('Face Detector', 'Face detector initialized');
   }
 
   // Convert CameraImage to InputImage
@@ -132,8 +171,11 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       print('=== Converting CameraImage ===');
       print('Image size: ${cameraImage.width}x${cameraImage.height}');
       print('Format raw: ${cameraImage.format.raw}');
+      _showDebugDialog('Convert Image', 'Converting CameraImage: ${cameraImage.width}x${cameraImage.height}, Format: ${cameraImage.format.raw}');
       
       final camera = _cameraController!.description;
+      print('Camera lens direction: ${camera.lensDirection}');
+      _showDebugDialog('Convert Image', 'Camera lens direction: ${camera.lensDirection}');
       
       InputImageRotation rotation;
       if (camera.lensDirection == CameraLensDirection.front) {
@@ -144,9 +186,11 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
 
       final format = InputImageFormat.nv21;
       print('Using format: $format, Rotation: $rotation');
+      _showDebugDialog('Convert Image', 'Format: $format, Rotation: $rotation');
 
       final bytes = cameraImage.planes[0].bytes;
-      print('Y plane bytes: ${bytes.length}');
+      print('Y plane bytes length: ${bytes.length}');
+      _showDebugDialog('Convert Image', 'Y plane bytes length: ${bytes.length}');
 
       final metadata = InputImageMetadata(
         size: Size(cameraImage.width.toDouble(), cameraImage.height.toDouble()),
@@ -157,10 +201,11 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
 
       final inputImage = InputImage.fromBytes(bytes: bytes, metadata: metadata);
       print('✓ InputImage created successfully');
+      _showDebugDialog('Convert Image', 'InputImage created successfully');
       return inputImage;
     } catch (e, stackTrace) {
-      print('ERROR: $e');
-      print('Stack: $stackTrace');
+      print('ERROR converting CameraImage: $e');
+      print('Stack trace: $stackTrace');
       _showErrorDialog('Lỗi Convert', 'Không thể convert camera image: $e');
       return null;
     }
@@ -168,13 +213,21 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
 
   // Convert CameraImage to imglib.Image for MobileFaceNet
   imglib.Image _convertYUV420ToImage(CameraImage image) {
+    print('=== Converting YUV420 to imglib.Image ===');
+    print('Input image size: ${image.width}x${image.height}');
+    _showDebugDialog('YUV420', 'Converting YUV420, size: ${image.width}x${image.height}');
     final int width = image.width;
     final int height = image.height;
     final int uvRowStride = image.planes[1].bytesPerRow;
     final int uvPixelStride = image.planes[1].bytesPerPixel!;
 
+    print('UV row stride: $uvRowStride, UV pixel stride: $uvPixelStride');
+    _showDebugDialog('YUV420', 'UV row stride: $uvRowStride, UV pixel stride: $uvPixelStride');
+    
     // Create image with correct constructor
     var img = imglib.Image(width: width, height: height);
+    print('Created imglib.Image with size: ${width}x${height}');
+    _showDebugDialog('YUV420', 'Created imglib.Image: ${width}x${height}');
 
     for (int x = 0; x < width; x++) {
       for (int y = 0; y < height; y++) {
@@ -192,18 +245,26 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
         img.setPixelRgba(x, y, r, g, b, 255);
       }
     }
+    print('✓ Converted YUV420 to imglib.Image successfully');
+    _showDebugDialog('YUV420', 'Converted YUV420 to imglib.Image successfully');
     return img;
   }
 
   // Crop face from CameraImage
   Future<imglib.Image?> _cropFace(CameraImage image, Face face) async {
     try {
+      print('=== Cropping face ===');
+      print('Input image size: ${image.width}x${image.height}');
+      _showDebugDialog('Crop Face', 'Cropping face, image size: ${image.width}x${image.height}');
       final srcImg = _convertYUV420ToImage(image);
       final box = face.boundingBox;
       int x = box.left.toInt();
       int y = box.top.toInt();
       int w = box.width.toInt();
       int h = box.height.toInt();
+
+      print('Original bounding box: x=$x, y=$y, w=$w, h=$h');
+      _showDebugDialog('Crop Face', 'Original bounding box: x=$x, y=$y, w=$w, h=$h');
 
       // Add some padding to the face box
       final padding = 0.2; // 20% padding
@@ -212,11 +273,17 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       w = (w * (1 + 2 * padding)).toInt();
       h = (h * (1 + 2 * padding)).toInt();
 
+      print('Padded bounding box: x=$x, y=$y, w=$w, h=$h');
+      _showDebugDialog('Crop Face', 'Padded bounding box: x=$x, y=$y, w=$w, h=$h');
+
       // Ensure coordinates are within image bounds
       x = x.clamp(0, image.width - 1);
       y = y.clamp(0, image.height - 1);
       w = w.clamp(1, image.width - x);
       h = h.clamp(1, image.height - y);
+
+      print('Clamped bounding box: x=$x, y=$y, w=$w, h=$h');
+      _showDebugDialog('Crop Face', 'Clamped bounding box: x=$x, y=$y, w=$w, h=$h');
 
       if (w <= 0 || h <= 0) {
         print('Invalid crop dimensions: w=$w, h=$h');
@@ -225,7 +292,11 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       }
 
       // Use copyCrop to crop the image
+      print('Cropping image with copyCrop...');
+      _showDebugDialog('Crop Face', 'Cropping image with copyCrop...');
       final cropped = imglib.copyCrop(srcImg, x: x, y: y, width: w, height: h);
+      print('✓ Cropped image successfully, size: ${cropped.width}x${cropped.height}');
+      _showDebugDialog('Crop Face', 'Cropped image successfully, size: ${cropped.width}x${cropped.height}');
       return cropped;
     } catch (e, stackTrace) {
       print('Error cropping face: $e');
@@ -238,6 +309,8 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
   // Extract face embedding using MobileFaceNet (128D)
   Future<List<double>?> _extractFaceEmbedding(CameraImage cameraImage, Face face) async {
     try {
+      print('=== Extracting face embedding ===');
+      _showDebugDialog('Embedding', 'Extracting face embedding...');
       if (_interpreter == null) {
         print('Model not loaded');
         _showErrorDialog('Lỗi', 'Model chưa được tải');
@@ -245,17 +318,27 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       }
 
       // Crop face
+      print('Cropping face...');
+      _showDebugDialog('Embedding', 'Cropping face...');
       final croppedImage = await _cropFace(cameraImage, face);
       if (croppedImage == null) {
         print('Failed to crop face');
         _showErrorDialog('Lỗi', 'Không thể cắt khuôn mặt');
         return null;
       }
+      print('Cropped image size: ${croppedImage.width}x${croppedImage.height}');
+      _showDebugDialog('Embedding', 'Cropped image size: ${croppedImage.width}x${croppedImage.height}');
 
       // Resize to 112x112 (MobileFaceNet input)
+      print('Resizing image to 112x112...');
+      _showDebugDialog('Embedding', 'Resizing image to 112x112...');
       final resizedImage = imglib.copyResize(croppedImage, width: 112, height: 112);
+      print('✓ Resized image successfully, size: ${resizedImage.width}x${resizedImage.height}');
+      _showDebugDialog('Embedding', 'Resized image successfully, size: ${resizedImage.width}x${resizedImage.height}');
 
       // Normalize pixel values to [-1, 1]
+      print('Normalizing pixel values...');
+      _showDebugDialog('Embedding', 'Normalizing pixel values...');
       var input = List.generate(
         1,
         (index) => List.generate(
@@ -268,6 +351,11 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
               final r = pixel.r.toDouble();
               final g = pixel.g.toDouble();
               final b = pixel.b.toDouble();
+              print('Pixel at ($x, $y): R=$r, G=$g, B=$b');
+              // Only show dialog for first pixel to avoid too many dialogs
+              if (x == 0 && y == 0) {
+                _showDebugDialog('Embedding', 'Sample pixel at (0,0): R=$r, G=$g, B=$b');
+              }
               return [
                 (r / 127.5 - 1.0),
                 (g / 127.5 - 1.0),
@@ -277,32 +365,50 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
           ),
         ),
       );
+      print('✓ Normalized input shape: [1, 112, 112, 3]');
+      _showDebugDialog('Embedding', 'Normalized input shape: [1, 112, 112, 3]');
 
       // Run MobileFaceNet
+      print('Running MobileFaceNet inference...');
+      _showDebugDialog('Embedding', 'Running MobileFaceNet inference...');
       var output = List.generate(1, (index) => List.filled(128, 0.0));
       _interpreter!.run(input, output);
+      print('✓ Inference completed, embedding length: ${output[0].length}');
+      print('Sample embedding values: ${output[0].sublist(0, 5)}...');
+      _showDebugDialog('Embedding', 'Inference completed, embedding length: ${output[0].length}\nSample: ${output[0].sublist(0, 5)}');
 
-      print('Embedding length: ${output[0].length}'); // Should be 128
       return output[0];
     } catch (e) {
       print('Error extracting embedding: $e');
-      _showErrorDialog('Lỗi', 'Không thể trích xuất đặc trưng khuôn mặt');
+      _showErrorDialog('Lỗi', 'Không thể trích xuất đặc trưng khuôn mặt: $e');
       return null;
     }
   }
 
   // Xử lý face recognition và điểm danh
   Future<void> _processFaceRecognition(CameraImage cameraImage, Face face) async {
-    if (_isProcessing) return;
+    if (_isProcessing) {
+      print('Processing already in progress, skipping...');
+      _showDebugDialog('Face Recognition', 'Processing already in progress, skipping...');
+      return;
+    }
     
+    print('=== Starting face recognition ===');
+    _showDebugDialog('Face Recognition', 'Starting face recognition...');
     _isProcessing = true;
     _lastDetectionTime = DateTime.now();
+    print('Last detection time: $_lastDetectionTime');
+    _showDebugDialog('Face Recognition', 'Last detection time: $_lastDetectionTime');
 
     try {
       // Extract face embedding
+      print('Extracting face embedding...');
+      _showDebugDialog('Face Recognition', 'Extracting face embedding...');
       final embedding = await _extractFaceEmbedding(cameraImage, face);
       
       if (embedding == null) {
+        print('Failed to extract embedding');
+        _showErrorDialog('Lỗi', 'Không thể trích xuất đặc trưng khuôn mặt');
         setState(() {
           _statusMessage = 'Không thể trích xuất đặc trưng khuôn mặt';
           _statusColor = Colors.red;
@@ -310,16 +416,24 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
         _isProcessing = false;
         return;
       }
+      print('✓ Face embedding extracted successfully');
+      _showDebugDialog('Face Recognition', 'Face embedding extracted successfully');
 
       // Gọi API để check và điểm danh
+      print('Calling API for attendance check...');
+      _showDebugDialog('Face Recognition', 'Calling API for attendance check...');
       setState(() {
         _statusMessage = 'Đang kiểm tra với database...';
         _statusColor = Colors.blue;
       });
 
       final result = await _checkAttendanceWithAPI(embedding);
+      print('API response: $result');
+      _showDebugDialog('Face Recognition', 'API response: ${result['tk_status']}');
 
       if (result['tk_status'] == 'OK') {
+        print('Attendance successful: ${result['message']}');
+        _showDebugDialog('Face Recognition', 'Attendance successful: ${result['message']}');
         setState(() {
           _statusMessage = 'Điểm danh thành công! ${result['message'] ?? ''}';
           _statusColor = Colors.green;
@@ -328,12 +442,16 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
         // Hiển thị dialog thành công
         _showSuccessDialog(result);
       } else {
+        print('Recognition failed: ${result['message']}');
+        _showDebugDialog('Face Recognition', 'Recognition failed: ${result['message']}');
         setState(() {
           _statusMessage = 'Không nhận diện được: ${result['message'] ?? 'Không tìm thấy trong database'}';
           _statusColor = Colors.red;
         });
       }
     } catch (e) {
+      print('Error processing face recognition: $e');
+      _showErrorDialog('Lỗi', 'Lỗi xử lý: $e');
       setState(() {
         _statusMessage = 'Lỗi xử lý: $e';
         _statusColor = Colors.red;
@@ -341,27 +459,36 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
     }
 
     // Reset sau 3 giây
+    print('Scheduling reset after 3 seconds...');
+    _showDebugDialog('Face Recognition', 'Scheduling reset after 3 seconds...');
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         setState(() {
-          _statusMessage = 'Đưa khuôn mặt vào khung hình để điểm danh';
+          _statusMessage = ('Đưa khuôn mặt request to API...');
           _statusColor = Colors.green;
         });
       }
       _isProcessing = false;
+      print('✓ Reset completed, ready for next detection');
+      _showDebugDialog('Face Recognition', 'Reset completed, ready for next detection');
     });
   }
 
   // Gọi API để check và điểm danh
   Future<Map<String, dynamic>> _checkAttendanceWithAPI(List<double> embedding) async {
     try {
+      print('Sending API request for face recognition...');
+      _showDebugDialog('API', 'Sending API request for face recognition...');
       final response = await API_Request.api_query('recognizeface', {
         'FACE_ID': embedding,
         'timestamp': DateTime.now().toIso8601String(),
       });
-
+      print('API response received: ${response['tk_status']}');
+      _showDebugDialog('API', 'API response received: ${response['tk_status']}');
       return response;
     } catch (e) {
+      print('Error connecting to API: $e');
+      _showErrorDialog('Lỗi', 'Lỗi kết nối API: $e');
       return {
         'tk_status': 'NG',
         'message': 'Lỗi kết nối API: $e',
@@ -371,6 +498,9 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
 
   // Hiển thị dialog thành công
   void _showSuccessDialog(Map<String, dynamic> result) {
+    print('Showing success dialog...');
+    print('Dialog content: Employee=${result['employee_name']}, Code=${result['employee_code']}, Time=${result['attendance_time']}');
+    _showDebugDialog('Success Dialog', 'Employee: ${result['employee_name'] ?? 'N/A'}, Code: ${result['employee_code'] ?? 'N/A'}, Time: ${result['attendance_time'] ?? DateTime.now().toString()}');
     AwesomeDialog(
       context: context,
       dialogType: DialogType.success,
@@ -385,26 +515,41 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
 
   // Xử lý camera image stream
   Future<void> _processCameraImage(CameraImage cameraImage) async {
-    if (_isDetecting || _isProcessing) return;
+    if (_isDetecting || _isProcessing) {
+      print('Skipping image processing: Detecting=$_isDetecting, Processing=$_isProcessing');
+      _showDebugDialog('Process Image', 'Skipping: Detecting=$_isDetecting, Processing=$_isProcessing');
+      return;
+    }
     
     if (_lastDetectionTime != null) {
       final timeSinceLastDetection = DateTime.now().difference(_lastDetectionTime!);
       if (timeSinceLastDetection.inSeconds < _detectionCooldownSeconds) {
+        print('Cooldown active: ${timeSinceLastDetection.inSeconds}s since last detection');
+        _showDebugDialog('Process Image', 'Cooldown active: ${timeSinceLastDetection.inSeconds}s');
         return;
       }
     }
 
     _isDetecting = true;
+    print('=== Processing camera image ===');
+    _showDebugDialog('Process Image', 'Processing camera image...');
 
     try {
+      print('Converting camera image to InputImage...');
+      _showDebugDialog('Process Image', 'Converting camera image to InputImage...');
       final inputImage = _convertCameraImage(cameraImage);
       if (inputImage == null) {
-        _isDetecting = false;
+        print('Failed to convert camera image');
         _showErrorDialog('Lỗi Camera', 'Không thể convert camera image');
+        _isDetecting = false;
         return;
       }
 
+      print('Detecting faces...');
+      _showDebugDialog('Process Image', 'Detecting faces...');
       final faces = await _faceDetector!.processImage(inputImage);
+      print('Detected ${faces.length} faces');
+      _showDebugDialog('Process Image', 'Detected ${faces.length} faces');
 
       if (faces.isNotEmpty && !_isProcessing) {
         setState(() {
@@ -412,12 +557,15 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
           _statusMessage = '✓ Phát hiện ${faces.length} khuôn mặt. Đang xử lý...';
           _statusColor = Colors.orange;
         });
-
+        print('Processing first detected face...');
+        _showDebugDialog('Process Image', 'Processing first detected face...');
         await _processFaceRecognition(cameraImage, faces.first);
       } else if (faces.isNotEmpty) {
         setState(() {
           _faces = faces;
         });
+        print('Faces detected but processing skipped due to _isProcessing=true');
+        _showDebugDialog('Process Image', 'Faces detected but processing skipped');
       } else {
         setState(() {
           _faces = faces;
@@ -426,6 +574,8 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
             _statusColor = Colors.green;
           }
         });
+        print('No faces detected');
+        _showDebugDialog('Process Image', 'No faces detected');
       }
     } catch (e, stackTrace) {
       print('Error processing image: $e');
@@ -434,11 +584,17 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
     }
 
     _isDetecting = false;
+    print('✓ Image processing completed');
+    _showDebugDialog('Process Image', 'Image processing completed');
   }
 
   // Show error dialog
   void _showErrorDialog(String title, String message) {
-    if (!mounted) return;
+    if (!mounted) {
+      print('Cannot show error dialog: Widget not mounted');
+      return;
+    }
+    print('Showing error dialog: $title - $message');
     AwesomeDialog(
       context: context,
       dialogType: DialogType.error,
@@ -451,6 +607,8 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
 
   @override
   Widget build(BuildContext context) {
+    print('Building UI, camera initialized: $_isCameraInitialized');
+    _showDebugDialog('UI Build', 'Building UI, camera initialized: $_isCameraInitialized');
     return Scaffold(
       appBar: AppBar(
         title: const Text('Điểm danh bằng khuôn mặt'),
@@ -602,9 +760,20 @@ class FacePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    print('=== Painting faces ===');
+    print('Number of faces to paint: ${faces.length}');
+    if (faces.isNotEmpty) {
+      // Use a simple context check to show dialog (context not directly available in CustomPainter)
+      print('Showing debug dialog for face painting');
+      // Note: CustomPainter cannot directly show dialogs, so we log instead
+      // If needed, move dialog to widget's build method or another stateful context
+    }
     for (final face in faces) {
       final scaleX = size.width / imageSize.width;
       final scaleY = size.height / imageSize.height;
+
+      print('Painting face with bounding box: ${face.boundingBox}');
+      print('Scaled factors: x=$scaleX, y=$scaleY');
 
       final Paint boxPaint = Paint()
         ..style = PaintingStyle.stroke
@@ -681,8 +850,10 @@ class FacePainter extends CustomPainter {
         ..style = PaintingStyle.fill
         ..color = Colors.yellowAccent;
 
+      print('Painting landmarks...');
       for (var landmark in face.landmarks.values) {
         if (landmark != null) {
+          print('Landmark position: (${landmark.position.x}, ${landmark.position.y})');
           canvas.drawCircle(
             Offset(
               landmark.position.x * scaleX,
@@ -712,6 +883,7 @@ class FacePainter extends CustomPainter {
         Offset(rect.left, rect.top - 25),
       );
     }
+    print('✓ Painting completed');
   }
 
   @override
