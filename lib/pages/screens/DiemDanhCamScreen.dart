@@ -1,10 +1,17 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:mobile_erp/controller/APIRequest.dart';
+import 'package:tflite_flutter/tflite_flutter.dart';
+import 'package:image/image.dart' as imglib;
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:math' as math;
 
 class DiemDanhCamScreen extends StatefulWidget {
   const DiemDanhCamScreen({Key? key}) : super(key: key);
@@ -16,6 +23,7 @@ class DiemDanhCamScreen extends StatefulWidget {
 class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
   CameraController? _cameraController;
   FaceDetector? _faceDetector;
+  Interpreter? _interpreter;
   
   bool _isDetecting = false;
   bool _isProcessing = false;
@@ -25,7 +33,6 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
   String _statusMessage = 'Đang khởi tạo camera...';
   Color _statusColor = Colors.blue;
   
-  // Cooldown để tránh detect liên tục
   DateTime? _lastDetectionTime;
   final int _detectionCooldownSeconds = 3;
 
@@ -34,13 +41,26 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
     super.initState();
     _initializeCamera();
     _initializeFaceDetector();
+    _loadModel();
   }
 
   @override
   void dispose() {
     _cameraController?.dispose();
     _faceDetector?.close();
+    _interpreter?.close();
     super.dispose();
+  }
+
+  // Load MobileFaceNet model
+  Future<void> _loadModel() async {
+    try {
+      _interpreter = await Interpreter.fromAsset('assets/models/mobilefacenet.tflite');
+      print('✓ MobileFaceNet model loaded successfully');
+    } catch (e) {
+      print('Error loading model: $e');
+      _showErrorDialog('Lỗi Model', 'Không thể tải MobileFaceNet: $e');
+    }
   }
 
   // Khởi tạo camera
@@ -56,7 +76,6 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
         return;
       }
 
-      // Chọn camera trước (front camera)
       final frontCamera = cameras.firstWhere(
         (camera) => camera.lensDirection == CameraLensDirection.front,
         orElse: () => cameras.first,
@@ -66,7 +85,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
         frontCamera,
         ResolutionPreset.medium,
         enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.nv21, // Use NV21 for ML Kit compatibility
+        imageFormatGroup: ImageFormatGroup.nv21,
       );
 
       await _cameraController!.initialize();
@@ -79,7 +98,6 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
         _statusColor = Colors.green;
       });
 
-      // Bắt đầu stream xử lý ảnh
       _cameraController!.startImageStream(_processCameraImage);
       
       print('✓ Camera initialized successfully');
@@ -108,93 +126,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
     _faceDetector = FaceDetector(options: options);
   }
 
-  // Extract face features từ ML Kit (thay thế TFLite)
-  // ML Kit cung cấp landmarks, contours, và bounding box
-  // Có thể dùng để tạo "feature vector" đơn giản
-
-  // Show error dialog
-  void _showErrorDialog(String title, String message) {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            const Icon(Icons.error, color: Colors.red, size: 32),
-            const SizedBox(width: 10),
-            Text(title),
-          ],
-        ),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Đóng'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Xử lý camera image stream
-  Future<void> _processCameraImage(CameraImage cameraImage) async {
-    if (_isDetecting || _isProcessing) return;
-    
-    // Kiểm tra cooldown
-    if (_lastDetectionTime != null) {
-      final timeSinceLastDetection = DateTime.now().difference(_lastDetectionTime!);
-      if (timeSinceLastDetection.inSeconds < _detectionCooldownSeconds) {
-        return;
-      }
-    }
-
-    _isDetecting = true;
-
-    try {
-      // Convert CameraImage to InputImage
-      final inputImage = _convertCameraImage(cameraImage);
-      if (inputImage == null) {
-        _isDetecting = false;
-        _showErrorDialog('Lỗi Camera', 'Không thể convert camera image');
-        return;
-      }
-
-      // Detect faces
-      final faces = await _faceDetector!.processImage(inputImage);
-
-      if (faces.isNotEmpty && !_isProcessing) {
-        setState(() {
-          _faces = faces;
-          _statusMessage = '✓ Phát hiện ${faces.length} khuôn mặt. Đang xử lý...';
-          _statusColor = Colors.orange;
-        });
-
-        // Xử lý khuôn mặt đầu tiên
-        await _processFaceRecognition(cameraImage, faces.first);
-      } else if (faces.isNotEmpty) {
-        // Đang processing nhưng vẫn detect được face
-        setState(() {
-          _faces = faces;
-        });
-      } else {
-        setState(() {
-          _faces = faces;
-          if (faces.isEmpty && !_isProcessing) {
-            _statusMessage = 'Đưa khuôn mặt vào khung hình để điểm danh';
-            _statusColor = Colors.green;
-          }
-        });
-      }
-    } catch (e, stackTrace) {
-      print('Error processing image: $e');
-      print('Stack trace: $stackTrace');
-      _showErrorDialog('Lỗi Face Detection', 'Chi tiết: $e');
-    }
-
-    _isDetecting = false;
-  }
-
-  // Convert CameraImage to InputImage - FIX for yuv_420_888
+  // Convert CameraImage to InputImage
   InputImage? _convertCameraImage(CameraImage cameraImage) {
     try {
       print('=== Converting CameraImage ===');
@@ -203,7 +135,6 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       
       final camera = _cameraController!.description;
       
-      // Determine rotation
       InputImageRotation rotation;
       if (camera.lensDirection == CameraLensDirection.front) {
         rotation = InputImageRotation.rotation270deg;
@@ -211,13 +142,9 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
         rotation = InputImageRotation.rotation90deg;
       }
 
-      // CRITICAL: Force NV21 format instead of yuv_420_888
-      // yuv_420_888 causes IllegalArgumentException in ML Kit
       final format = InputImageFormat.nv21;
-      print('Using format: $format (forced), Rotation: $rotation');
+      print('Using format: $format, Rotation: $rotation');
 
-      // CRITICAL: Only use Y plane, not all planes
-      // Concatenating all planes causes IllegalArgumentException
       final bytes = cameraImage.planes[0].bytes;
       print('Y plane bytes: ${bytes.length}');
 
@@ -231,39 +158,137 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       final inputImage = InputImage.fromBytes(bytes: bytes, metadata: metadata);
       print('✓ InputImage created successfully');
       return inputImage;
-      
     } catch (e, stackTrace) {
       print('ERROR: $e');
       print('Stack: $stackTrace');
-      
-      // Fallback: Try alternative method
-      try {
-        print('Trying alternative conversion method...');
-        return _convertCameraImageAlternative(cameraImage);
-      } catch (e2) {
-        print('Alternative method also failed: $e2');
-        _showErrorDialog('Lỗi Convert', 'Không thể convert camera image.\n\nLỗi: $e');
-        return null;
-      }
+      _showErrorDialog('Lỗi Convert', 'Không thể convert camera image: $e');
+      return null;
     }
   }
-  
-  // Alternative conversion method
-  InputImage? _convertCameraImageAlternative(CameraImage cameraImage) {
-    final WriteBuffer allBytes = WriteBuffer();
-    for (final Plane plane in cameraImage.planes) {
-      allBytes.putUint8List(plane.bytes);
+
+  // Convert CameraImage to imglib.Image for MobileFaceNet
+  imglib.Image _convertYUV420ToImage(CameraImage image) {
+    final int width = image.width;
+    final int height = image.height;
+    final int uvRowStride = image.planes[1].bytesPerRow;
+    final int uvPixelStride = image.planes[1].bytesPerPixel!;
+
+    // Create image with correct constructor
+    var img = imglib.Image(width: width, height: height);
+
+    for (int x = 0; x < width; x++) {
+      for (int y = 0; y < height; y++) {
+        final int uvIndex = uvPixelStride * (x / 2).floor() + uvRowStride * (y / 2).floor();
+        final int index = y * width + x;
+
+        final yp = image.planes[0].bytes[index];
+        final up = image.planes[1].bytes[uvIndex];
+        final vp = image.planes[2].bytes[uvIndex];
+
+        int r = (yp + vp * 1436 / 1024 - 179).round().clamp(0, 255);
+        int g = (yp - up * 465 / 1024 - vp * 813 / 1024 + 135).round().clamp(0, 255);
+        int b = (yp + up * 1814 / 1024 - 44).round().clamp(0, 255);
+
+        img.setPixelRgba(x, y, r, g, b, 255);
+      }
     }
-    final bytes = allBytes.done().buffer.asUint8List();
-    
-    final metadata = InputImageMetadata(
-      size: Size(cameraImage.width.toDouble(), cameraImage.height.toDouble()),
-      rotation: InputImageRotation.rotation0deg, // Try no rotation
-      format: InputImageFormat.yuv420,
-      bytesPerRow: cameraImage.width,
-    );
-    
-    return InputImage.fromBytes(bytes: bytes, metadata: metadata);
+    return img;
+  }
+
+  // Crop face from CameraImage
+  Future<imglib.Image?> _cropFace(CameraImage image, Face face) async {
+    try {
+      final srcImg = _convertYUV420ToImage(image);
+      final box = face.boundingBox;
+      int x = box.left.toInt();
+      int y = box.top.toInt();
+      int w = box.width.toInt();
+      int h = box.height.toInt();
+
+      // Add some padding to the face box
+      final padding = 0.2; // 20% padding
+      x = (x - w * padding).toInt();
+      y = (y - h * padding).toInt();
+      w = (w * (1 + 2 * padding)).toInt();
+      h = (h * (1 + 2 * padding)).toInt();
+
+      // Ensure coordinates are within image bounds
+      x = x.clamp(0, image.width - 1);
+      y = y.clamp(0, image.height - 1);
+      w = w.clamp(1, image.width - x);
+      h = h.clamp(1, image.height - y);
+
+      if (w <= 0 || h <= 0) {
+        print('Invalid crop dimensions: w=$w, h=$h');
+        _showErrorDialog('Lỗi', 'Kích thước khuôn mặt không hợp lệ: $w x $h');
+        return null;
+      }
+
+      // Use copyCrop to crop the image
+      final cropped = imglib.copyCrop(srcImg, x: x, y: y, width: w, height: h);
+      return cropped;
+    } catch (e, stackTrace) {
+      print('Error cropping face: $e');
+      print('Stack trace: $stackTrace');
+      _showErrorDialog('Lỗi', 'Không thể cắt ảnh khuôn mặt: $e');
+      return null;
+    }
+  }
+
+  // Extract face embedding using MobileFaceNet (128D)
+  Future<List<double>?> _extractFaceEmbedding(CameraImage cameraImage, Face face) async {
+    try {
+      if (_interpreter == null) {
+        print('Model not loaded');
+        _showErrorDialog('Lỗi', 'Model chưa được tải');
+        return null;
+      }
+
+      // Crop face
+      final croppedImage = await _cropFace(cameraImage, face);
+      if (croppedImage == null) {
+        print('Failed to crop face');
+        _showErrorDialog('Lỗi', 'Không thể cắt khuôn mặt');
+        return null;
+      }
+
+      // Resize to 112x112 (MobileFaceNet input)
+      final resizedImage = imglib.copyResize(croppedImage, width: 112, height: 112);
+
+      // Normalize pixel values to [-1, 1]
+      var input = List.generate(
+        1,
+        (index) => List.generate(
+          112,
+          (y) => List.generate(
+            112,
+            (x) {
+              final pixel = resizedImage.getPixel(x, y);
+              // Extract R, G, B from Pixel object
+              final r = pixel.r.toDouble();
+              final g = pixel.g.toDouble();
+              final b = pixel.b.toDouble();
+              return [
+                (r / 127.5 - 1.0),
+                (g / 127.5 - 1.0),
+                (b / 127.5 - 1.0),
+              ];
+            },
+          ),
+        ),
+      );
+
+      // Run MobileFaceNet
+      var output = List.generate(1, (index) => List.filled(128, 0.0));
+      _interpreter!.run(input, output);
+
+      print('Embedding length: ${output[0].length}'); // Should be 128
+      return output[0];
+    } catch (e) {
+      print('Error extracting embedding: $e');
+      _showErrorDialog('Lỗi', 'Không thể trích xuất đặc trưng khuôn mặt');
+      return null;
+    }
   }
 
   // Xử lý face recognition và điểm danh
@@ -285,14 +310,6 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
         _isProcessing = false;
         return;
       }
-       AwesomeDialog(
-          context: context,
-          dialogType: DialogType.success,
-          animType: AnimType.rightSlide,
-          title: 'Thông báo',
-          desc: 'Embedding: ${embedding.join(", ")}',
-          btnOkOnPress: () {},
-        ).show();
 
       // Gọi API để check và điểm danh
       setState(() {
@@ -335,63 +352,6 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
     });
   }
 
-  // Extract face features từ ML Kit Face Detection
-  // Tạo feature vector từ landmarks và bounding box
-  Future<List<double>?> _extractFaceEmbedding(CameraImage cameraImage, Face face) async {
-    try {
-      List<double> features = [];
-      
-      // 1. Bounding box features (4 values: normalized)
-      final bbox = face.boundingBox;
-      features.addAll([
-        bbox.left / cameraImage.width,
-        bbox.top / cameraImage.height,
-        bbox.width / cameraImage.width,
-        bbox.height / cameraImage.height,
-      ]);
-      
-      // 2. Face landmarks (nếu có)
-      final landmarks = face.landmarks;
-      for (var landmark in landmarks.values) {
-        if (landmark != null) {
-          features.addAll([
-            landmark.position.x / cameraImage.width,
-            landmark.position.y / cameraImage.height,
-          ]);
-        }
-      }
-      
-      // 3. Head rotation angles (nếu có)
-      if (face.headEulerAngleX != null) features.add(face.headEulerAngleX!);
-      if (face.headEulerAngleY != null) features.add(face.headEulerAngleY!);
-      if (face.headEulerAngleZ != null) features.add(face.headEulerAngleZ!);
-      
-      // 4. Smile probability
-      if (face.smilingProbability != null) features.add(face.smilingProbability!);
-      
-      // 5. Eye open probabilities
-      if (face.leftEyeOpenProbability != null) features.add(face.leftEyeOpenProbability!);
-      if (face.rightEyeOpenProbability != null) features.add(face.rightEyeOpenProbability!);
-      
-      // Pad to fixed length (e.g., 50 features)
-      while (features.length < 50) {
-        features.add(0.0);
-      }
-      
-      // Truncate if too long
-      if (features.length > 50) {
-        features = features.sublist(0, 50);
-      }
-      
-      return features;
-    } catch (e) {
-      print('Error extracting face features: $e');
-      return null;
-    }
-  }
-
-  // Không cần convert image nữa vì dùng ML Kit features trực tiếp
-
   // Gọi API để check và điểm danh
   Future<Map<String, dynamic>> _checkAttendanceWithAPI(List<double> embedding) async {
     try {
@@ -411,33 +371,82 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
 
   // Hiển thị dialog thành công
   void _showSuccessDialog(Map<String, dynamic> result) {
-    showDialog(
+    AwesomeDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.green, size: 32),
-            SizedBox(width: 10),
-            Text('Điểm danh thành công'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Nhân viên: ${result['employee_name'] ?? 'N/A'}'),
-            Text('Mã NV: ${result['employee_code'] ?? 'N/A'}'),
-            Text('Thời gian: ${result['attendance_time'] ?? DateTime.now().toString()}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Đóng'),
-          ),
-        ],
-      ),
-    );
+      dialogType: DialogType.success,
+      animType: AnimType.rightSlide,
+      title: 'Điểm danh thành công',
+      desc: 'Nhân viên: ${result['employee_name'] ?? 'N/A'}\n'
+          'Mã NV: ${result['employee_code'] ?? 'N/A'}\n'
+          'Thời gian: ${result['attendance_time'] ?? DateTime.now().toString()}',
+      btnOkOnPress: () {},
+    ).show();
+  }
+
+  // Xử lý camera image stream
+  Future<void> _processCameraImage(CameraImage cameraImage) async {
+    if (_isDetecting || _isProcessing) return;
+    
+    if (_lastDetectionTime != null) {
+      final timeSinceLastDetection = DateTime.now().difference(_lastDetectionTime!);
+      if (timeSinceLastDetection.inSeconds < _detectionCooldownSeconds) {
+        return;
+      }
+    }
+
+    _isDetecting = true;
+
+    try {
+      final inputImage = _convertCameraImage(cameraImage);
+      if (inputImage == null) {
+        _isDetecting = false;
+        _showErrorDialog('Lỗi Camera', 'Không thể convert camera image');
+        return;
+      }
+
+      final faces = await _faceDetector!.processImage(inputImage);
+
+      if (faces.isNotEmpty && !_isProcessing) {
+        setState(() {
+          _faces = faces;
+          _statusMessage = '✓ Phát hiện ${faces.length} khuôn mặt. Đang xử lý...';
+          _statusColor = Colors.orange;
+        });
+
+        await _processFaceRecognition(cameraImage, faces.first);
+      } else if (faces.isNotEmpty) {
+        setState(() {
+          _faces = faces;
+        });
+      } else {
+        setState(() {
+          _faces = faces;
+          if (faces.isEmpty && !_isProcessing) {
+            _statusMessage = 'Đưa khuôn mặt vào khung hình để điểm danh';
+            _statusColor = Colors.green;
+          }
+        });
+      }
+    } catch (e, stackTrace) {
+      print('Error processing image: $e');
+      print('Stack trace: $stackTrace');
+      _showErrorDialog('Lỗi Face Detection', 'Chi tiết: $e');
+    }
+
+    _isDetecting = false;
+  }
+
+  // Show error dialog
+  void _showErrorDialog(String title, String message) {
+    if (!mounted) return;
+    AwesomeDialog(
+      context: context,
+      dialogType: DialogType.error,
+      animType: AnimType.rightSlide,
+      title: title,
+      desc: message,
+      btnOkOnPress: () {},
+    ).show();
   }
 
   @override
@@ -451,7 +460,6 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
           ? Stack(
               fit: StackFit.expand,
               children: [
-                // Camera preview full screen không méo
                 FittedBox(
                   fit: BoxFit.cover,
                   child: SizedBox(
@@ -460,8 +468,6 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
                     child: CameraPreview(_cameraController!),
                   ),
                 ),
-                
-                // Face detection overlay
                 if (_faces.isNotEmpty)
                   Positioned.fill(
                     child: CustomPaint(
@@ -474,8 +480,6 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
                       ),
                     ),
                   ),
-                
-                // Status bar với debug info
                 Positioned(
                   top: 0,
                   left: 0,
@@ -513,8 +517,6 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
                     ),
                   ),
                 ),
-                
-                // DEBUG: Khung hình đổi màu - BLUE = có face, RED = không có face
                 Center(
                   child: Container(
                     width: 250,
@@ -535,8 +537,6 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
                     ),
                   ),
                 ),
-                
-                // DEBUG: Hiển thị trạng thái lớn ở giữa màn hình
                 Center(
                   child: Container(
                     padding: const EdgeInsets.all(20),
@@ -573,7 +573,6 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
                     ),
                   ),
                 ),
-                
               ],
             )
           : Center(
@@ -607,7 +606,6 @@ class FacePainter extends CustomPainter {
       final scaleX = size.width / imageSize.width;
       final scaleY = size.height / imageSize.height;
 
-      // Vẽ bounding box với màu xanh neon
       final Paint boxPaint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 4.0
@@ -621,14 +619,12 @@ class FacePainter extends CustomPainter {
         face.boundingBox.bottom * scaleY,
       );
 
-      // Vẽ rounded rectangle
       final RRect roundedRect = RRect.fromRectAndRadius(
         rect,
         const Radius.circular(20),
       );
       canvas.drawRRect(roundedRect, boxPaint);
 
-      // Vẽ góc của bounding box (decorative corners)
       final Paint cornerPaint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 6.0
@@ -637,7 +633,6 @@ class FacePainter extends CustomPainter {
 
       final double cornerLength = 30;
 
-      // Top-left corner
       canvas.drawLine(
         Offset(rect.left, rect.top + cornerLength),
         Offset(rect.left, rect.top),
@@ -649,7 +644,6 @@ class FacePainter extends CustomPainter {
         cornerPaint,
       );
 
-      // Top-right corner
       canvas.drawLine(
         Offset(rect.right - cornerLength, rect.top),
         Offset(rect.right, rect.top),
@@ -661,7 +655,6 @@ class FacePainter extends CustomPainter {
         cornerPaint,
       );
 
-      // Bottom-left corner
       canvas.drawLine(
         Offset(rect.left, rect.bottom - cornerLength),
         Offset(rect.left, rect.bottom),
@@ -673,7 +666,6 @@ class FacePainter extends CustomPainter {
         cornerPaint,
       );
 
-      // Bottom-right corner
       canvas.drawLine(
         Offset(rect.right - cornerLength, rect.bottom),
         Offset(rect.right, rect.bottom),
@@ -685,7 +677,6 @@ class FacePainter extends CustomPainter {
         cornerPaint,
       );
 
-      // Vẽ landmarks (eyes, nose, mouth)
       final Paint landmarkPaint = Paint()
         ..style = PaintingStyle.fill
         ..color = Colors.yellowAccent;
@@ -703,7 +694,6 @@ class FacePainter extends CustomPainter {
         }
       }
 
-      // Vẽ label "FACE DETECTED"
       final textPainter = TextPainter(
         text: TextSpan(
           text: 'FACE DETECTED',

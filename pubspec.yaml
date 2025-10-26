@@ -40,10 +40,10 @@ dependencies:
   asn1lib: ^1.6.4
   convert: ^3.1.2
   path_provider: ^2.1.1
-  image: ^3.0.2  # Để process ảnh
+  image: ^4.2.0 # Để process ảnh
   camera: ^0.10.0
   google_mlkit_face_detection: ^0.11.0
-  # tflite_flutter: ^0.10.4  # Tạm comment vì có bug, dùng ML Kit embedding thay thế
+  tflite_flutter: ^0.11.0
 
 dev_dependencies:
   flutter_test:
