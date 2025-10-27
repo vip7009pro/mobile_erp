@@ -171,11 +171,11 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       print('=== Converting CameraImage ===');
       print('Image size: ${cameraImage.width}x${cameraImage.height}');
       print('Format raw: ${cameraImage.format.raw}');
-      _showDebugDialog('Convert Image', 'Converting CameraImage: ${cameraImage.width}x${cameraImage.height}, Format: ${cameraImage.format.raw}');
+      //_showDebugDialog('Convert Image', 'Converting CameraImage: ${cameraImage.width}x${cameraImage.height}, Format: ${cameraImage.format.raw}');
       
       final camera = _cameraController!.description;
       print('Camera lens direction: ${camera.lensDirection}');
-      _showDebugDialog('Convert Image', 'Camera lens direction: ${camera.lensDirection}');
+      //_showDebugDialog('Convert Image', 'Camera lens direction: ${camera.lensDirection}');
       
       InputImageRotation rotation;
       if (camera.lensDirection == CameraLensDirection.front) {
@@ -186,11 +186,11 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
 
       final format = InputImageFormat.nv21;
       print('Using format: $format, Rotation: $rotation');
-      _showDebugDialog('Convert Image', 'Format: $format, Rotation: $rotation');
+      //_showDebugDialog('Convert Image', 'Format: $format, Rotation: $rotation');
 
       final bytes = cameraImage.planes[0].bytes;
       print('Y plane bytes length: ${bytes.length}');
-      _showDebugDialog('Convert Image', 'Y plane bytes length: ${bytes.length}');
+      //_showDebugDialog('Convert Image', 'Y plane bytes length: ${bytes.length}');
 
       final metadata = InputImageMetadata(
         size: Size(cameraImage.width.toDouble(), cameraImage.height.toDouble()),
@@ -201,7 +201,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
 
       final inputImage = InputImage.fromBytes(bytes: bytes, metadata: metadata);
       print('✓ InputImage created successfully');
-      _showDebugDialog('Convert Image', 'InputImage created successfully');
+      //_showDebugDialog('Convert Image', 'InputImage created successfully');
       return inputImage;
     } catch (e, stackTrace) {
       print('ERROR converting CameraImage: $e');
@@ -215,19 +215,19 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
   imglib.Image _convertYUV420ToImage(CameraImage image) {
     print('=== Converting YUV420 to imglib.Image ===');
     print('Input image size: ${image.width}x${image.height}');
-    _showDebugDialog('YUV420', 'Converting YUV420, size: ${image.width}x${image.height}');
+    //_showDebugDialog('YUV420', 'Converting YUV420, size: ${image.width}x${image.height}');
     final int width = image.width;
     final int height = image.height;
     final int uvRowStride = image.planes[1].bytesPerRow;
     final int uvPixelStride = image.planes[1].bytesPerPixel!;
 
     print('UV row stride: $uvRowStride, UV pixel stride: $uvPixelStride');
-    _showDebugDialog('YUV420', 'UV row stride: $uvRowStride, UV pixel stride: $uvPixelStride');
+    //_showDebugDialog('YUV420', 'UV row stride: $uvRowStride, UV pixel stride: $uvPixelStride');
     
     // Create image with correct constructor
     var img = imglib.Image(width: width, height: height);
     print('Created imglib.Image with size: ${width}x${height}');
-    _showDebugDialog('YUV420', 'Created imglib.Image: ${width}x${height}');
+    //_showDebugDialog('YUV420', 'Created imglib.Image: ${width}x${height}');
 
     for (int x = 0; x < width; x++) {
       for (int y = 0; y < height; y++) {
@@ -246,7 +246,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       }
     }
     print('✓ Converted YUV420 to imglib.Image successfully');
-    _showDebugDialog('YUV420', 'Converted YUV420 to imglib.Image successfully');
+    //_showDebugDialog('YUV420', 'Converted YUV420 to imglib.Image successfully');
     return img;
   }
 
@@ -255,7 +255,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
     try {
       print('=== Cropping face ===');
       print('Input image size: ${image.width}x${image.height}');
-      _showDebugDialog('Crop Face', 'Cropping face, image size: ${image.width}x${image.height}');
+      //_showDebugDialog('Crop Face', 'Cropping face, image size: ${image.width}x${image.height}');
       final srcImg = _convertYUV420ToImage(image);
       final box = face.boundingBox;
       int x = box.left.toInt();
@@ -264,7 +264,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       int h = box.height.toInt();
 
       print('Original bounding box: x=$x, y=$y, w=$w, h=$h');
-      _showDebugDialog('Crop Face', 'Original bounding box: x=$x, y=$y, w=$w, h=$h');
+      //_showDebugDialog('Crop Face', 'Original bounding box: x=$x, y=$y, w=$w, h=$h');
 
       // Add some padding to the face box
       final padding = 0.2; // 20% padding
@@ -274,7 +274,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       h = (h * (1 + 2 * padding)).toInt();
 
       print('Padded bounding box: x=$x, y=$y, w=$w, h=$h');
-      _showDebugDialog('Crop Face', 'Padded bounding box: x=$x, y=$y, w=$w, h=$h');
+      //_showDebugDialog('Crop Face', 'Padded bounding box: x=$x, y=$y, w=$w, h=$h');
 
       // Ensure coordinates are within image bounds
       x = x.clamp(0, image.width - 1);
@@ -283,7 +283,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       h = h.clamp(1, image.height - y);
 
       print('Clamped bounding box: x=$x, y=$y, w=$w, h=$h');
-      _showDebugDialog('Crop Face', 'Clamped bounding box: x=$x, y=$y, w=$w, h=$h');
+      //_showDebugDialog('Crop Face', 'Clamped bounding box: x=$x, y=$y, w=$w, h=$h');
 
       if (w <= 0 || h <= 0) {
         print('Invalid crop dimensions: w=$w, h=$h');
@@ -293,10 +293,10 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
 
       // Use copyCrop to crop the image
       print('Cropping image with copyCrop...');
-      _showDebugDialog('Crop Face', 'Cropping image with copyCrop...');
+      //_showDebugDialog('Crop Face', 'Cropping image with copyCrop...');
       final cropped = imglib.copyCrop(srcImg, x: x, y: y, width: w, height: h);
       print('✓ Cropped image successfully, size: ${cropped.width}x${cropped.height}');
-      _showDebugDialog('Crop Face', 'Cropped image successfully, size: ${cropped.width}x${cropped.height}');
+      //_showDebugDialog('Crop Face', 'Cropped image successfully, size: ${cropped.width}x${cropped.height}');
       return cropped;
     } catch (e, stackTrace) {
       print('Error cropping face: $e');
@@ -310,7 +310,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
   Future<List<double>?> _extractFaceEmbedding(CameraImage cameraImage, Face face) async {
     try {
       print('=== Extracting face embedding ===');
-      _showDebugDialog('Embedding', 'Extracting face embedding...');
+      //_showDebugDialog('Embedding', 'Extracting face embedding...');
       if (_interpreter == null) {
         print('Model not loaded');
         _showErrorDialog('Lỗi', 'Model chưa được tải');
@@ -319,7 +319,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
 
       // Crop face
       print('Cropping face...');
-      _showDebugDialog('Embedding', 'Cropping face...');
+      //_showDebugDialog('Embedding', 'Cropping face...');
       final croppedImage = await _cropFace(cameraImage, face);
       if (croppedImage == null) {
         print('Failed to crop face');
@@ -354,7 +354,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
               print('Pixel at ($x, $y): R=$r, G=$g, B=$b');
               // Only show dialog for first pixel to avoid too many dialogs
               if (x == 0 && y == 0) {
-                _showDebugDialog('Embedding', 'Sample pixel at (0,0): R=$r, G=$g, B=$b');
+                //_showDebugDialog('Embedding', 'Sample pixel at (0,0): R=$r, G=$g, B=$b');
               }
               return [
                 (r / 127.5 - 1.0),
@@ -366,16 +366,16 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
         ),
       );
       print('✓ Normalized input shape: [1, 112, 112, 3]');
-      _showDebugDialog('Embedding', 'Normalized input shape: [1, 112, 112, 3]');
+      //_showDebugDialog('Embedding', 'Normalized input shape: [1, 112, 112, 3]');
 
       // Run MobileFaceNet
       print('Running MobileFaceNet inference...');
-      _showDebugDialog('Embedding', 'Running MobileFaceNet inference...');
+      //_showDebugDialog('Embedding', 'Running MobileFaceNet inference...');
       var output = List.generate(1, (index) => List.filled(128, 0.0));
       _interpreter!.run(input, output);
       print('✓ Inference completed, embedding length: ${output[0].length}');
       print('Sample embedding values: ${output[0].sublist(0, 5)}...');
-      _showDebugDialog('Embedding', 'Inference completed, embedding length: ${output[0].length}\nSample: ${output[0].sublist(0, 5)}');
+      //_showDebugDialog('Embedding', 'Inference completed, embedding length: ${output[0].length}\nSample: ${output[0].sublist(0, 5)}');
 
       return output[0];
     } catch (e) {
