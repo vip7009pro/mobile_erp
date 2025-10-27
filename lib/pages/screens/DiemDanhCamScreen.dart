@@ -40,7 +40,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
   void initState() {
     super.initState();
     print('=== Initializing DiemDanhCamScreen ===');
-    _showDebugDialog('Init', 'Initializing DiemDanhCamScreen');
+    // Không gọi _showDebugDialog trong initState vì context chưa sẵn sàng
     _initializeCamera();
     _initializeFaceDetector();
     _loadModel();
@@ -49,7 +49,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
   @override
   void dispose() {
     print('=== Disposing DiemDanhCamScreen ===');
-    _showDebugDialog('Dispose', 'Disposing DiemDanhCamScreen');
+    // Không gọi _showDebugDialog trong dispose
     _cameraController?.dispose();
     _faceDetector?.close();
     _interpreter?.close();
@@ -78,13 +78,14 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
   Future<void> _loadModel() async {
     try {
       print('Loading MobileFaceNet model...');
-      _showDebugDialog('Load Model', 'Loading MobileFaceNet model...');
       _interpreter = await Interpreter.fromAsset('assets/models/mobilefacenet.tflite');
       print('✓ MobileFaceNet model loaded successfully');
-      _showDebugDialog('Load Model', 'MobileFaceNet model loaded successfully');
     } catch (e) {
       print('Error loading model: $e');
-      _showErrorDialog('Lỗi Model', 'Không thể tải MobileFaceNet: $e');
+      // Không gọi _showErrorDialog trong initState context
+      if (mounted) {
+        Future.microtask(() => _showErrorDialog('Lỗi Model', 'Không thể tải MobileFaceNet: $e'));
+      }
     }
   }
 
@@ -92,15 +93,16 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
   Future<void> _initializeCamera() async {
     try {
       print('Initializing camera...');
-      _showDebugDialog('Camera', 'Initializing camera...');
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
         print('No cameras found');
-        _showErrorDialog('Lỗi Camera', 'Không tìm thấy camera trên thiết bị');
-        setState(() {
-          _statusMessage = 'Không tìm thấy camera';
-          _statusColor = Colors.red;
-        });
+        if (mounted) {
+          setState(() {
+            _statusMessage = 'Không tìm thấy camera';
+            _statusColor = Colors.red;
+          });
+          Future.microtask(() => _showErrorDialog('Lỗi Camera', 'Không tìm thấy camera trên thiết bị'));
+        }
         return;
       }
 
@@ -109,7 +111,6 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
         orElse: () => cameras.first,
       );
       print('Selected camera: ${frontCamera.name}, Lens: ${frontCamera.lensDirection}');
-      _showDebugDialog('Camera', 'Selected camera: ${frontCamera.name}, Lens: ${frontCamera.lensDirection}');
 
       _cameraController = CameraController(
         frontCamera,
@@ -119,7 +120,6 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       );
 
       print('Initializing camera controller...');
-      _showDebugDialog('Camera', 'Initializing camera controller...');
       await _cameraController!.initialize();
 
       if (!mounted) return;
@@ -131,28 +131,27 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       });
 
       print('Starting image stream...');
-      _showDebugDialog('Camera', 'Starting image stream...');
       _cameraController!.startImageStream(_processCameraImage);
       
       print('✓ Camera initialized successfully');
       print('✓ Face detector ready');
       print('✓ Image stream started');
-      _showDebugDialog('Camera', 'Camera initialized successfully');
     } catch (e, stackTrace) {
       print('Error initializing camera: $e');
       print('Stack trace: $stackTrace');
-      _showErrorDialog('Lỗi Khởi tạo Camera', 'Chi tiết: $e');
-      setState(() {
-        _statusMessage = 'Lỗi khởi tạo camera: $e';
-        _statusColor = Colors.red;
-      });
+      if (mounted) {
+        setState(() {
+          _statusMessage = 'Lỗi khởi tạo camera: $e';
+          _statusColor = Colors.red;
+        });
+        Future.microtask(() => _showErrorDialog('Lỗi Khởi tạo Camera', 'Chi tiết: $e'));
+      }
     }
   }
 
   // Khởi tạo face detector
   void _initializeFaceDetector() {
     print('Initializing face detector...');
-    _showDebugDialog('Face Detector', 'Initializing face detector...');
     final options = FaceDetectorOptions(
       enableContours: true,
       enableClassification: true,
@@ -162,7 +161,6 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
     );
     _faceDetector = FaceDetector(options: options);
     print('✓ Face detector initialized');
-    _showDebugDialog('Face Detector', 'Face detector initialized');
   }
 
   // Convert CameraImage to InputImage
@@ -255,7 +253,8 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
     try {
       print('=== Cropping face ===');
       print('Input image size: ${image.width}x${image.height}');
-      //_showDebugDialog('Crop Face', 'Cropping face, image size: ${image.width}x${image.height}');
+
+      _showDebugDialog('Crop Face', 'Cropping face, image size: ${image.width}x${image.height}');
       final srcImg = _convertYUV420ToImage(image);
       final box = face.boundingBox;
       int x = box.left.toInt();
