@@ -18,6 +18,9 @@ import 'package:mobile_erp/pages/phongban/sx/InputLieu.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:mobile_erp/pages/screens/DangKyKhuonMatScreen.dart';
+import 'package:mobile_erp/pages/screens/attendance_screen.dart';
+import 'package:mobile_erp/pages/screens/registration_screen.dart';
 import 'dart:async';
 import 'package:ota_update/ota_update.dart';
 import 'package:mobile_erp/pages/screens/DiemDanhCamScreen.dart';
@@ -223,6 +226,78 @@ void initState() {
                     if (!CheckPermission(c.userData, ['ALL'],
                         ['Manager', 'AM', 'Senior', 'Staff'], ['ALL'], () {
                       Get.to(() => const DiemDanhCamScreen());
+                    })) {
+                      AwesomeDialog(
+                        context: context,
+                        dialogType: DialogType.error,
+                        animType: AnimType.topSlide,
+                        title: 'Cảnh báo',
+                        desc: 'Không đủ quyền hạn!',
+                        btnCancelOnPress: () {},
+                      ).show();
+                    }
+                  },
+                ),                
+                ListTile(
+                  visualDensity: const VisualDensity(vertical: -3),
+                  leading: const FaIcon(
+                    FontAwesomeIcons.check,
+                    color: Colors.green,
+                  ),
+                  title: const Text("Đăng ký khuôn mặt"),
+                  onTap: () {
+                    //action on press
+                    if (!CheckPermission(c.userData, ['ALL'],
+                        ['Manager', 'AM', 'Senior', 'Staff'], ['ALL'], () {
+                      Get.to(() => const DangKyKhuonMatScreen(emplNo: 'NHU1903',));
+                    })) {
+                      AwesomeDialog(
+                        context: context,
+                        dialogType: DialogType.error,
+                        animType: AnimType.topSlide,
+                        title: 'Cảnh báo',
+                        desc: 'Không đủ quyền hạn!',
+                        btnCancelOnPress: () {},
+                      ).show();
+                    }
+                  },
+                ),                
+                ListTile(
+                  visualDensity: const VisualDensity(vertical: -3),
+                  leading: const FaIcon(
+                    FontAwesomeIcons.check,
+                    color: Colors.green,
+                  ),
+                  title: const Text("Đăng ký khuôn mặt 2"),
+                  onTap: () {
+                    //action on press
+                    if (!CheckPermission(c.userData, ['ALL'],
+                        ['Manager', 'AM', 'Senior', 'Staff'], ['ALL'], () {
+                      Get.to(() => RegistrationScreen());
+                    })) {
+                      AwesomeDialog(
+                        context: context,
+                        dialogType: DialogType.error,
+                        animType: AnimType.topSlide,
+                        title: 'Cảnh báo',
+                        desc: 'Không đủ quyền hạn!',
+                        btnCancelOnPress: () {},
+                      ).show();
+                    }
+                  },
+                ),                
+                ListTile(
+                  visualDensity: const VisualDensity(vertical: -3),
+                  leading: const FaIcon(
+                    FontAwesomeIcons.check,
+                    color: Colors.green,
+                  ),
+                  title: const Text("Điểm danh camera 2"),
+                  onTap: () {
+                    //action on press
+                    if (!CheckPermission(c.userData, ['ALL'],
+                        ['Manager', 'AM', 'Senior', 'Staff'], ['ALL'], () {
+                      Get.to(() => AttendanceScreen());
                     })) {
                       AwesomeDialog(
                         context: context,

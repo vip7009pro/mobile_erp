@@ -1,11 +1,14 @@
 // ignore: file_names
 import 'dart:convert';
 import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:get/get.dart';
 import 'package:mobile_erp/controller/APIRequest.dart';
 import 'package:mobile_erp/controller/GlobalFunction.dart';
 import 'package:mobile_erp/model/DataInterfaceClass.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:mobile_erp/pages/screens/DangKyKhuonMatScreen.dart';
+import 'package:mobile_erp/utils/FaceRegistrationUtil.dart';
 /// The home page of the application which hosts the datagrid.
 class DiemDanhNhomTable extends StatefulWidget {
   /// Creates the home page.
@@ -768,6 +771,33 @@ class _DiemDanhNhomListState extends State<DiemDanhNhomList> {
                                       style: TextStyle(
                                           fontSize: 10.0, color: Colors.black)),
                                 ),
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    //Get.to(() =>  DangKyKhuonMatScreen(emplNo: _listDiemDanh[index].emplNo));
+                                    await FaceRegistrationUtil.registerFaceFromUrl(emplNo: _listDiemDanh[index].emplNo, imageUrl: 'http://14.160.33.94/Picture_NS/NS_${_listDiemDanh[index].emplNo}.jpg');
+                                    
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                      minimumSize: Size.zero,
+                                      padding: const EdgeInsets.all(5.0),
+                                      backgroundColor: Colors.yellowAccent),
+                                  child: const Text("Face Reg Avatar",
+                                      style: TextStyle(
+                                          fontSize: 10.0, color: Colors.black)),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    Get.to(() =>  DangKyKhuonMatScreen(emplNo: _listDiemDanh[index].emplNo));                                    
+                                    
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                      minimumSize: Size.zero,
+                                      padding: const EdgeInsets.all(5.0),
+                                      backgroundColor: Colors.yellowAccent),
+                                  child: const Text("Face Reg Camera",
+                                      style: TextStyle(
+                                          fontSize: 10.0, color: Colors.black)),
+                                ),
                               ],
                             ),
                           )
@@ -776,6 +806,7 @@ class _DiemDanhNhomListState extends State<DiemDanhNhomList> {
                     );
                   }),
                   itemCount: _listDiemDanh.length,
+                  
                 ))),
       ],
     );

@@ -211,40 +211,77 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
 
   // Convert CameraImage to imglib.Image for MobileFaceNet
   imglib.Image _convertYUV420ToImage(CameraImage image) {
-    print('=== Converting YUV420 to imglib.Image ===');
+    print('=== Converting CameraImage to imglib.Image ===');
     print('Input image size: ${image.width}x${image.height}');
-    //_showDebugDialog('YUV420', 'Converting YUV420, size: ${image.width}x${image.height}');
+    print('Number of planes: ${image.planes.length}');
+    print('Format: ${image.format.group}');
+    
     final int width = image.width;
     final int height = image.height;
-    final int uvRowStride = image.planes[1].bytesPerRow;
-    final int uvPixelStride = image.planes[1].bytesPerPixel!;
-
-    print('UV row stride: $uvRowStride, UV pixel stride: $uvPixelStride');
-    //_showDebugDialog('YUV420', 'UV row stride: $uvRowStride, UV pixel stride: $uvPixelStride');
     
     // Create image with correct constructor
     var img = imglib.Image(width: width, height: height);
     print('Created imglib.Image with size: ${width}x${height}');
-    //_showDebugDialog('YUV420', 'Created imglib.Image: ${width}x${height}');
 
-    for (int x = 0; x < width; x++) {
+    // Xử lý theo số lượng planes
+    if (image.planes.length == 1) {
+      // Grayscale hoặc single plane format
+      print('Processing single plane image (grayscale)');
+      final bytes = image.planes[0].bytes;
+      final bytesPerRow = image.planes[0].bytesPerRow;
+      
       for (int y = 0; y < height; y++) {
-        final int uvIndex = uvPixelStride * (x / 2).floor() + uvRowStride * (y / 2).floor();
-        final int index = y * width + x;
-
-        final yp = image.planes[0].bytes[index];
-        final up = image.planes[1].bytes[uvIndex];
-        final vp = image.planes[2].bytes[uvIndex];
-
-        int r = (yp + vp * 1436 / 1024 - 179).round().clamp(0, 255);
-        int g = (yp - up * 465 / 1024 - vp * 813 / 1024 + 135).round().clamp(0, 255);
-        int b = (yp + up * 1814 / 1024 - 44).round().clamp(0, 255);
-
-        img.setPixelRgba(x, y, r, g, b, 255);
+        for (int x = 0; x < width; x++) {
+          final int index = y * bytesPerRow + x;
+          if (index < bytes.length) {
+            final gray = bytes[index];
+            img.setPixelRgba(x, y, gray, gray, gray, 255);
+          }
+        }
       }
+    } else if (image.planes.length >= 3) {
+      // YUV420 format
+      print('Processing YUV420 format');
+      final int uvRowStride = image.planes[1].bytesPerRow;
+      final int uvPixelStride = image.planes[1].bytesPerPixel ?? 1;
+      
+      print('Y plane: ${image.planes[0].bytes.length} bytes');
+      print('U plane: ${image.planes[1].bytes.length} bytes, stride: $uvRowStride, pixel stride: $uvPixelStride');
+      print('V plane: ${image.planes[2].bytes.length} bytes');
+
+      for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+          final int yIndex = y * width + x;
+          final int uvX = (x / 2).floor();
+          final int uvY = (y / 2).floor();
+          final int uvIndex = uvY * uvRowStride + uvX * uvPixelStride;
+
+          // Kiểm tra bounds trước khi truy cập
+          if (yIndex >= image.planes[0].bytes.length) {
+            continue;
+          }
+          if (uvIndex >= image.planes[1].bytes.length || uvIndex >= image.planes[2].bytes.length) {
+            continue;
+          }
+
+          final yp = image.planes[0].bytes[yIndex];
+          final up = image.planes[1].bytes[uvIndex];
+          final vp = image.planes[2].bytes[uvIndex];
+
+          // YUV to RGB conversion
+          int r = (yp + vp * 1436 / 1024 - 179).round().clamp(0, 255);
+          int g = (yp - up * 465 / 1024 - vp * 813 / 1024 + 135).round().clamp(0, 255);
+          int b = (yp + up * 1814 / 1024 - 44).round().clamp(0, 255);
+
+          img.setPixelRgba(x, y, r, g, b, 255);
+        }
+      }
+    } else {
+      print('ERROR: Unsupported number of planes: ${image.planes.length}');
+      throw Exception('Unsupported image format: ${image.planes.length} planes');
     }
-    print('✓ Converted YUV420 to imglib.Image successfully');
-    //_showDebugDialog('YUV420', 'Converted YUV420 to imglib.Image successfully');
+    
+    print('✓ Converted CameraImage to imglib.Image successfully');
     return img;
   }
 
@@ -254,7 +291,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       print('=== Cropping face ===');
       print('Input image size: ${image.width}x${image.height}');
 
-      _showDebugDialog('Crop Face', 'Cropping face, image size: ${image.width}x${image.height}');
+      //_showDebugDialog('Crop Face', 'Cropping face, image size: ${image.width}x${image.height}');
       final srcImg = _convertYUV420ToImage(image);
       final box = face.boundingBox;
       int x = box.left.toInt();
@@ -305,7 +342,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
     }
   }
 
-  // Extract face embedding using MobileFaceNet (128D)
+  // Extract face embedding using MobileFaceNet (192D)
   Future<List<double>?> _extractFaceEmbedding(CameraImage cameraImage, Face face) async {
     try {
       print('=== Extracting face embedding ===');
@@ -326,18 +363,18 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
         return null;
       }
       print('Cropped image size: ${croppedImage.width}x${croppedImage.height}');
-      _showDebugDialog('Embedding', 'Cropped image size: ${croppedImage.width}x${croppedImage.height}');
+      //_showDebugDialog('Embedding', 'Cropped image size: ${croppedImage.width}x${croppedImage.height}');
 
       // Resize to 112x112 (MobileFaceNet input)
       print('Resizing image to 112x112...');
-      _showDebugDialog('Embedding', 'Resizing image to 112x112...');
+      //_showDebugDialog('Embedding', 'Resizing image to 112x112...');
       final resizedImage = imglib.copyResize(croppedImage, width: 112, height: 112);
       print('✓ Resized image successfully, size: ${resizedImage.width}x${resizedImage.height}');
-      _showDebugDialog('Embedding', 'Resized image successfully, size: ${resizedImage.width}x${resizedImage.height}');
+      //_showDebugDialog('Embedding', 'Resized image successfully, size: ${resizedImage.width}x${resizedImage.height}');
 
       // Normalize pixel values to [-1, 1]
       print('Normalizing pixel values...');
-      _showDebugDialog('Embedding', 'Normalizing pixel values...');
+      //_showDebugDialog('Embedding', 'Normalizing pixel values...');
       var input = List.generate(
         1,
         (index) => List.generate(
@@ -350,11 +387,6 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
               final r = pixel.r.toDouble();
               final g = pixel.g.toDouble();
               final b = pixel.b.toDouble();
-              print('Pixel at ($x, $y): R=$r, G=$g, B=$b');
-              // Only show dialog for first pixel to avoid too many dialogs
-              if (x == 0 && y == 0) {
-                //_showDebugDialog('Embedding', 'Sample pixel at (0,0): R=$r, G=$g, B=$b');
-              }
               return [
                 (r / 127.5 - 1.0),
                 (g / 127.5 - 1.0),
@@ -369,12 +401,21 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
 
       // Run MobileFaceNet
       print('Running MobileFaceNet inference...');
-      //_showDebugDialog('Embedding', 'Running MobileFaceNet inference...');
-      var output = List.generate(1, (index) => List.filled(128, 0.0));
+      
+      // Kiểm tra output shape của model
+      print('=== MODEL INFO ===');
+      print('Model output shape: ${_interpreter!.getOutputTensor(0).shape}');
+      print('Model output type: ${_interpreter!.getOutputTensor(0).type}');
+      
+      // Model trả về 192 chiều
+      var output = List.generate(1, (index) => List.filled(192, 0.0));
       _interpreter!.run(input, output);
-      print('✓ Inference completed, embedding length: ${output[0].length}');
-      print('Sample embedding values: ${output[0].sublist(0, 5)}...');
-      //_showDebugDialog('Embedding', 'Inference completed, embedding length: ${output[0].length}\nSample: ${output[0].sublist(0, 5)}');
+      
+      print('=== EMBEDDING INFO ===');
+      print('✓ Inference completed successfully');
+      print('Số chiều embedding: ${output[0].length}D');
+      print('Sample embedding values: ${output[0].sublist(0, math.min(5, output[0].length))}...');
+      print('==================');
 
       return output[0];
     } catch (e) {
@@ -388,7 +429,6 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
   Future<void> _processFaceRecognition(CameraImage cameraImage, Face face) async {
     if (_isProcessing) {
       print('Processing already in progress, skipping...');
-      _showDebugDialog('Face Recognition', 'Processing already in progress, skipping...');
       return;
     }
     
@@ -434,12 +474,12 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
         print('Attendance successful: ${result['message']}');
         //_showDebugDialog('Face Recognition', 'Attendance successful: ${result['message']}');
         setState(() {
-          _statusMessage = 'Điểm danh thành công! ${result['message'] ?? ''}';
+          _statusMessage = 'Điểm danh thành công! ${result['data']['EMPL_NO'] ?? ''}';
           _statusColor = Colors.green;
         });
         
         // Hiển thị dialog thành công
-        _showSuccessDialog(result);
+        //_showSuccessDialog(result);
       } else {
         print('Recognition failed: ${result['message']}');
         //_showDebugDialog('Face Recognition', 'Recognition failed: ${result['message']}');
