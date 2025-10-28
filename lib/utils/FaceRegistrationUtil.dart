@@ -281,6 +281,15 @@ class FaceRegistrationUtil {
     }
   }
 
+  static List<double> normalizeEmbedding(List<double> embedding) {
+    double norm = 0.0;
+    for (var value in embedding) {
+      norm += value * value;
+    }
+    norm = math.sqrt(norm);
+    if (norm == 0) return embedding;
+    return embedding.map((v) => v / norm).toList();
+  }
   // Dispose model khi không dùng nữa
   static void dispose() {
     _interpreter?.close();

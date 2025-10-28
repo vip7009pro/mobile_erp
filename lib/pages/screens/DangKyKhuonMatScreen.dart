@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:mobile_erp/controller/APIRequest.dart';
+import 'package:mobile_erp/utils/FaceRegistrationUtil.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as imglib;
 import 'dart:math' as math;
@@ -212,10 +213,12 @@ class _DangKyKhuonMatScreenState extends State<DangKyKhuonMatScreen> {
           final up = image.planes[1].bytes[uvIndex];
           final vp = image.planes[2].bytes[uvIndex];
 
-          int r = (yp + vp * 1436 / 1024 - 179).round().clamp(0, 255);
-          int g = (yp - up * 465 / 1024 - vp * 813 / 1024 + 135).round().clamp(0, 255);
-          int b = (yp + up * 1814 / 1024 - 44).round().clamp(0, 255);
-
+          final int Y = yp;
+          final int U = up - 128;
+          final int V = vp - 128;
+          int r = (Y + 1.402 * V).round().clamp(0, 255);
+          int g = (Y - 0.34414 * U - 0.71414 * V).round().clamp(0, 255);
+          int b = (Y + 1.772 * U).round().clamp(0, 255);
           img.setPixelRgba(x, y, r, g, b, 255);
         }
       }
@@ -368,9 +371,10 @@ class _DangKyKhuonMatScreenState extends State<DangKyKhuonMatScreen> {
 
         // Tự động extract embedding khi phát hiện face
         if (_capturedEmbedding == null && !_isProcessing) {
-          final embedding = await _extractFaceEmbedding(cameraImage, faces.first);
+          var embedding = await _extractFaceEmbedding(cameraImage, faces.first);
           if (embedding != null) {
             setState(() {
+              embedding = FaceRegistrationUtil.normalizeEmbedding(embedding!);
               _capturedEmbedding = embedding;
             });
           }
