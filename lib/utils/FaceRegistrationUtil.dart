@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:typed_data';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as imglib;
 import 'package:http/http.dart' as http;
@@ -290,10 +292,106 @@ class FaceRegistrationUtil {
     if (norm == 0) return embedding;
     return embedding.map((v) => v / norm).toList();
   }
+
+
+  static String embeddingToBase64(List<double> embedding) {
+    final float32 = Float32List.fromList(embedding);
+    final bytes = float32.buffer.asUint8List();
+    return base64Encode(bytes);
+  }
+
+ 
   // Dispose model khi không dùng nữa
   static void dispose() {
     _interpreter?.close();
     _interpreter = null;
     print('✓ Model disposed');
   }
+
+  static imglib.Image alignFace(imglib.Image image, Face face) {
+  final leftEye = face.landmarks[FaceLandmarkType.leftEye]?.position;
+  final rightEye = face.landmarks[FaceLandmarkType.rightEye]?.position;
+  if (leftEye == null || rightEye == null) return image;
+
+  // Tính góc xoay và khoảng cách mắt
+  final double eyeDistance = math.sqrt(
+    math.pow(rightEye.x - leftEye.x, 2) + math.pow(rightEye.y - leftEye.y, 2)
+  );
+  final double desiredEyeDistance = 40.0;
+  final double scale = desiredEyeDistance / eyeDistance;
+
+  final double centerX = (leftEye.x + rightEye.x) / 2;
+  final double centerY = (leftEye.y + rightEye.y) / 2;
+
+  final double angle = math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x);
+
+  // Tạo ảnh mới
+  final transformed = imglib.Image(
+    width: image.width,
+    height: image.height,
+    backgroundColor: imglib.ColorRgb8(0, 0, 0),
+  );
+
+  final cosA = math.cos(-angle);
+  final sinA = math.sin(-angle);
+
+  // Hàm bilinear interpolation thủ công (trả về ColorRgb8)
+  imglib.ColorRgb8 getPixelBilinear(imglib.Image img, double x, double y) {
+    final x0 = x.floor();
+    final y0 = y.floor();
+    final x1 = x0 + 1;
+    final y1 = y0 + 1;
+
+    if (x0 < 0 || x1 >= img.width || y0 < 0 || y1 >= img.height) {
+      return imglib.ColorRgb8(0, 0, 0);
+    }
+
+    final p00 = img.getPixel(x0, y0) as imglib.ColorRgb8;
+    final p10 = img.getPixel(x1, y0) as imglib.ColorRgb8;
+    final p01 = img.getPixel(x0, y1) as imglib.ColorRgb8;
+    final p11 = img.getPixel(x1, y1) as imglib.ColorRgb8;
+
+    final dx = x - x0;
+    final dy = y - y0;
+
+    final r = (p00.r * (1 - dx) * (1 - dy) +
+        p10.r * dx * (1 - dy) +
+        p01.r * (1 - dx) * dy +
+        p11.r * dx * dy).round();
+
+    final g = (p00.g * (1 - dx) * (1 - dy) +
+        p10.g * dx * (1 - dy) +
+        p01.g * (1 - dx) * dy +
+        p11.g * dx * dy).round();
+
+    final b = (p00.b * (1 - dx) * (1 - dy) +
+        p10.b * dx * (1 - dy) +
+        p01.b * (1 - dx) * dy +
+        p11.b * dx * dy).round();
+
+    return imglib.ColorRgb8(r, g, b);
+  }
+
+  // Biến đổi từng pixel
+  for (int y = 0; y < image.height; y++) {
+    for (int x = 0; x < image.width; x++) {
+      final dx = (x - centerX) * cosA - (y - centerY) * sinA;
+      final dy = (x - centerX) * sinA + (y - centerY) * cosA;
+
+      final srcX = (dx / scale) + centerX;
+      final srcY = (dy / scale) + centerY;
+
+      if (srcX >= 0 && srcX < image.width - 1 && srcY >= 0 && srcY < image.height - 1) {
+        final pixelColor = getPixelBilinear(image, srcX, srcY);
+        transformed.setPixel(x, y, pixelColor); // ← Dùng ColorRgb8
+      }
+    }
+  }
+
+  // Crop trung tâm 112x112
+  final cropX = (transformed.width / 2 - 56).round();
+  final cropY = (transformed.height / 2 - 56).round();
+  return imglib.copyCrop(transformed, x: cropX, y: cropY, width: 112, height: 112);
+}
+  
 }

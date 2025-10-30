@@ -5,6 +5,8 @@ import 'package:mobile_erp/controller/GetXController.dart';
 import 'package:mobile_erp/controller/GlobalFunction.dart';
 import 'package:mobile_erp/pages/HomeWidget.dart';
 import 'package:mobile_erp/pages/LoginPage.dart';
+import 'package:mobile_erp/pages/faces/face_recognition_screen.dart';
+import 'package:mobile_erp/pages/faces/face_registration_screen.dart';
 import 'package:mobile_erp/pages/phongban/kinhdoanh/quan_ly_po.dart';
 import 'package:mobile_erp/pages/phongban/nhansu/BaoCaoNhanSu.dart';
 import 'package:mobile_erp/pages/phongban/nhansu/DangKy.dart';
@@ -273,7 +275,7 @@ void initState() {
                     //action on press
                     if (!CheckPermission(c.userData, ['ALL'],
                         ['Manager', 'AM', 'Senior', 'Staff'], ['ALL'], () {
-                      Get.to(() => RegistrationScreen());
+                      Get.to(() => const FaceRegistrationScreen());
                     })) {
                       AwesomeDialog(
                         context: context,
@@ -297,7 +299,7 @@ void initState() {
                     //action on press
                     if (!CheckPermission(c.userData, ['ALL'],
                         ['Manager', 'AM', 'Senior', 'Staff'], ['ALL'], () {
-                      Get.to(() => AttendanceScreen());
+                      Get.to(() => const FaceRecognitionScreen());
                     })) {
                       AwesomeDialog(
                         context: context,

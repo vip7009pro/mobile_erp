@@ -212,83 +212,94 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
 
   // Convert CameraImage to imglib.Image for MobileFaceNet
   imglib.Image _convertYUV420ToImage(CameraImage image) {
-    print('=== Converting CameraImage to imglib.Image ===');
-    print('Input image size: ${image.width}x${image.height}');
-    print('Number of planes: ${image.planes.length}');
-    print('Format: ${image.format.group}');
-    
-    final int width = image.width;
-    final int height = image.height;
-    
-    // Create image with correct constructor
-    var img = imglib.Image(width: width, height: height);
-    print('Created imglib.Image with size: ${width}x${height}');
+  print('=== Converting CameraImage to imglib.Image ===');
+  print('Input image size: ${image.width}x${image.height}');
+  print('Number of planes: ${image.planes.length}');
+  print('Format: ${image.format.group}');
 
-    // Xử lý theo số lượng planes
-    if (image.planes.length == 1) {
-      // Grayscale hoặc single plane format
-      print('Processing single plane image (grayscale)');
-      final bytes = image.planes[0].bytes;
-      final bytesPerRow = image.planes[0].bytesPerRow;
-      
-      for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-          final int index = y * bytesPerRow + x;
-          if (index < bytes.length) {
-            final gray = bytes[index];
-            img.setPixelRgba(x, y, gray, gray, gray, 255);
-          }
+  final int width = image.width;
+  final int height = image.height;
+  var img = imglib.Image(width: width, height: height);
+  print('Created imglib.Image with size: ${width}x${height}');
+
+  if (image.planes.length == 1) {
+    // Grayscale
+    print('Processing single plane image (grayscale)');
+    final bytes = image.planes[0].bytes;
+    final bytesPerRow = image.planes[0].bytesPerRow;
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        final int index = y * bytesPerRow + x;
+        if (index < bytes.length) {
+          final gray = bytes[index];
+          img.setPixelRgba(x, y, gray, gray, gray, 255);
         }
       }
-    } else if (image.planes.length >= 3) {
-      // YUV420 format
-      print('Processing YUV420 format');
-      final int uvRowStride = image.planes[1].bytesPerRow;
-      final int uvPixelStride = image.planes[1].bytesPerPixel ?? 1;
-      
-      print('Y plane: ${image.planes[0].bytes.length} bytes');
-      print('U plane: ${image.planes[1].bytes.length} bytes, stride: $uvRowStride, pixel stride: $uvPixelStride');
-      print('V plane: ${image.planes[2].bytes.length} bytes');
-
-      for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-          final int yIndex = y * width + x;
-          final int uvX = (x / 2).floor();
-          final int uvY = (y / 2).floor();
-          final int uvIndex = uvY * uvRowStride + uvX * uvPixelStride;
-
-          // Kiểm tra bounds trước khi truy cập
-          if (yIndex >= image.planes[0].bytes.length) {
-            continue;
-          }
-          if (uvIndex >= image.planes[1].bytes.length || uvIndex >= image.planes[2].bytes.length) {
-            continue;
-          }
-
-          final yp = image.planes[0].bytes[yIndex];
-          final up = image.planes[1].bytes[uvIndex];
-          final vp = image.planes[2].bytes[uvIndex];
-
-          // YUV to RGB conversion
-          final int Y = yp;
-          final int U = up - 128;
-          final int V = vp - 128;
-          int r = (Y + 1.402 * V).round().clamp(0, 255);
-          int g = (Y - 0.34414 * U - 0.71414 * V).round().clamp(0, 255);
-          int b = (Y + 1.772 * U).round().clamp(0, 255);
-          img.setPixelRgba(x, y, r, g, b, 255);
-
-         
-        }
-      }
-    } else {
-      print('ERROR: Unsupported number of planes: ${image.planes.length}');
-      throw Exception('Unsupported image format: ${image.planes.length} planes');
     }
-    
-    print('✓ Converted CameraImage to imglib.Image successfully');
-    return img;
+  } else if (image.planes.length == 2) {
+    // NV21 format (Android): plane[0] Y, plane[1] VU interleaved
+    print('Processing NV21 format (planes=2)');
+    final int uvRowStride = image.planes[1].bytesPerRow;
+    final int uvPixelStride = 2; // VU VU...
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        final int yIndex = y * width + x;
+        final int uvX = (x / 2).floor();
+        final int uvY = (y / 2).floor();
+        final int uvIndex = uvY * uvRowStride + uvX * uvPixelStride;
+
+        if (yIndex >= image.planes[0].bytes.length) continue;
+        if (uvIndex + 1 >= image.planes[1].bytes.length) continue;
+
+        final yp = image.planes[0].bytes[yIndex];
+        final vp = image.planes[1].bytes[uvIndex];     // V
+        final up = image.planes[1].bytes[uvIndex + 1]; // U
+
+        final int Y = yp;
+        final int U = up - 128;
+        final int V = vp - 128;
+        int r = (Y + 1.402 * V).round().clamp(0, 255);
+        int g = (Y - 0.34414 * U - 0.71414 * V).round().clamp(0, 255);
+        int b = (Y + 1.772 * U).round().clamp(0, 255);
+        img.setPixelRgba(x, y, r, g, b, 255);
+      }
+    }
+  } else if (image.planes.length == 3) {
+    // YUV420 with separate U and V planes (e.g., YUV_420_888)
+    print('Processing YUV420 format (planes=3)');
+    final int uvRowStride = image.planes[1].bytesPerRow;
+    final int uvPixelStride = image.planes[1].bytesPerPixel ?? 1;
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        final int yIndex = y * width + x;
+        final int uvX = (x / 2).floor();
+        final int uvY = (y / 2).floor();
+        final int uvIndex = uvY * uvRowStride + uvX * uvPixelStride;
+
+        if (yIndex >= image.planes[0].bytes.length) continue;
+        if (uvIndex >= image.planes[1].bytes.length || uvIndex >= image.planes[2].bytes.length) continue;
+
+        final yp = image.planes[0].bytes[yIndex];
+        final up = image.planes[1].bytes[uvIndex];
+        final vp = image.planes[2].bytes[uvIndex];
+
+        final int Y = yp;
+        final int U = up - 128;
+        final int V = vp - 128;
+        int r = (Y + 1.402 * V).round().clamp(0, 255);
+        int g = (Y - 0.34414 * U - 0.71414 * V).round().clamp(0, 255);
+        int b = (Y + 1.772 * U).round().clamp(0, 255);
+        img.setPixelRgba(x, y, r, g, b, 255);
+      }
+    }
+  } else {
+    print('ERROR: Unsupported number of planes: ${image.planes.length}');
+    throw Exception('Unsupported image format: ${image.planes.length} planes');
   }
+
+  print('✓ Converted CameraImage to imglib.Image successfully');
+  return img;
+}
 
   // Crop face from CameraImage
   Future<imglib.Image?> _cropFace(CameraImage image, Face face) async {
@@ -336,9 +347,10 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       print('Cropping image with copyCrop...');
       //_showDebugDialog('Crop Face', 'Cropping image with copyCrop...');
       final cropped = imglib.copyCrop(srcImg, x: x, y: y, width: w, height: h);
+      final aligned = FaceRegistrationUtil.alignFace(cropped, face);
       print('✓ Cropped image successfully, size: ${cropped.width}x${cropped.height}');
       //_showDebugDialog('Crop Face', 'Cropped image successfully, size: ${cropped.width}x${cropped.height}');
-      return cropped;
+      return aligned;
     } catch (e, stackTrace) {
       print('Error cropping face: $e');
       print('Stack trace: $stackTrace');
@@ -479,13 +491,14 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
         print('Attendance successful: ${result['message']}');
         //_showDebugDialog('Face Recognition', 'Attendance successful: ${result['message']}');
         setState(() {
-          _statusMessage = 'Điểm danh thành công! ${result['data']['EMPL_NO'] ?? ''}';
+          _statusMessage = 'Điểm danh thành công! ${result['data']['EMPL_NO'] ?? ''} score: ${result['data']['score'] ?? ''}';
           _statusColor = Colors.green;
         });
         
         // Hiển thị dialog thành công
         //_showSuccessDialog(result);
       } else {
+        
         print('Recognition failed: ${result['message']}');
         //_showDebugDialog('Face Recognition', 'Recognition failed: ${result['message']}');
         setState(() {
@@ -524,9 +537,9 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
       print('Sending API request for face recognition...');
       //_showDebugDialog('API', 'Sending API request for face recognition...');
       embedding = FaceRegistrationUtil.normalizeEmbedding(embedding);
-
+      final base64String = FaceRegistrationUtil.embeddingToBase64(embedding);
       final response = await API_Request.api_query('recognizeface', {
-        'FACE_ID': embedding,
+        'FACE_ID': base64String,
         'timestamp': DateTime.now().toIso8601String(),
       });
       print('API response received: ${response['tk_status']}');

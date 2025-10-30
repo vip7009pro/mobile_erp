@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
@@ -172,61 +174,94 @@ class _DangKyKhuonMatScreenState extends State<DangKyKhuonMatScreen> {
 
   // Convert CameraImage to imglib.Image
   imglib.Image _convertYUV420ToImage(CameraImage image) {
-    print('=== Converting CameraImage to imglib.Image ===');
-    
-    final int width = image.width;
-    final int height = image.height;
-    
-    var img = imglib.Image(width: width, height: height);
+  print('=== Converting CameraImage to imglib.Image ===');
+  print('Input image size: ${image.width}x${image.height}');
+  print('Number of planes: ${image.planes.length}');
+  print('Format: ${image.format.group}');
 
-    // Xử lý theo số lượng planes
-    if (image.planes.length == 1) {
-      // Grayscale
-      final bytes = image.planes[0].bytes;
-      final bytesPerRow = image.planes[0].bytesPerRow;
-      
-      for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-          final int index = y * bytesPerRow + x;
-          if (index < bytes.length) {
-            final gray = bytes[index];
-            img.setPixelRgba(x, y, gray, gray, gray, 255);
-          }
-        }
-      }
-    } else if (image.planes.length >= 3) {
-      // YUV420
-      final int uvRowStride = image.planes[1].bytesPerRow;
-      final int uvPixelStride = image.planes[1].bytesPerPixel ?? 1;
+  final int width = image.width;
+  final int height = image.height;
+  var img = imglib.Image(width: width, height: height);
+  print('Created imglib.Image with size: ${width}x${height}');
 
-      for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-          final int yIndex = y * width + x;
-          final int uvX = (x / 2).floor();
-          final int uvY = (y / 2).floor();
-          final int uvIndex = uvY * uvRowStride + uvX * uvPixelStride;
-
-          if (yIndex >= image.planes[0].bytes.length) continue;
-          if (uvIndex >= image.planes[1].bytes.length || uvIndex >= image.planes[2].bytes.length) continue;
-
-          final yp = image.planes[0].bytes[yIndex];
-          final up = image.planes[1].bytes[uvIndex];
-          final vp = image.planes[2].bytes[uvIndex];
-
-          final int Y = yp;
-          final int U = up - 128;
-          final int V = vp - 128;
-          int r = (Y + 1.402 * V).round().clamp(0, 255);
-          int g = (Y - 0.34414 * U - 0.71414 * V).round().clamp(0, 255);
-          int b = (Y + 1.772 * U).round().clamp(0, 255);
-          img.setPixelRgba(x, y, r, g, b, 255);
+  if (image.planes.length == 1) {
+    // Grayscale
+    print('Processing single plane image (grayscale)');
+    final bytes = image.planes[0].bytes;
+    final bytesPerRow = image.planes[0].bytesPerRow;
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        final int index = y * bytesPerRow + x;
+        if (index < bytes.length) {
+          final gray = bytes[index];
+          img.setPixelRgba(x, y, gray, gray, gray, 255);
         }
       }
     }
-    
-    return img;
+  } else if (image.planes.length == 2) {
+    // NV21 format (Android): plane[0] Y, plane[1] VU interleaved
+    print('Processing NV21 format (planes=2)');
+    final int uvRowStride = image.planes[1].bytesPerRow;
+    final int uvPixelStride = 2; // VU VU...
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        final int yIndex = y * width + x;
+        final int uvX = (x / 2).floor();
+        final int uvY = (y / 2).floor();
+        final int uvIndex = uvY * uvRowStride + uvX * uvPixelStride;
+
+        if (yIndex >= image.planes[0].bytes.length) continue;
+        if (uvIndex + 1 >= image.planes[1].bytes.length) continue;
+
+        final yp = image.planes[0].bytes[yIndex];
+        final vp = image.planes[1].bytes[uvIndex];     // V
+        final up = image.planes[1].bytes[uvIndex + 1]; // U
+
+        final int Y = yp;
+        final int U = up - 128;
+        final int V = vp - 128;
+        int r = (Y + 1.402 * V).round().clamp(0, 255);
+        int g = (Y - 0.34414 * U - 0.71414 * V).round().clamp(0, 255);
+        int b = (Y + 1.772 * U).round().clamp(0, 255);
+        img.setPixelRgba(x, y, r, g, b, 255);
+      }
+    }
+  } else if (image.planes.length == 3) {
+    // YUV420 with separate U and V planes (e.g., YUV_420_888)
+    print('Processing YUV420 format (planes=3)');
+    final int uvRowStride = image.planes[1].bytesPerRow;
+    final int uvPixelStride = image.planes[1].bytesPerPixel ?? 1;
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        final int yIndex = y * width + x;
+        final int uvX = (x / 2).floor();
+        final int uvY = (y / 2).floor();
+        final int uvIndex = uvY * uvRowStride + uvX * uvPixelStride;
+
+        if (yIndex >= image.planes[0].bytes.length) continue;
+        if (uvIndex >= image.planes[1].bytes.length || uvIndex >= image.planes[2].bytes.length) continue;
+
+        final yp = image.planes[0].bytes[yIndex];
+        final up = image.planes[1].bytes[uvIndex];
+        final vp = image.planes[2].bytes[uvIndex];
+
+        final int Y = yp;
+        final int U = up - 128;
+        final int V = vp - 128;
+        int r = (Y + 1.402 * V).round().clamp(0, 255);
+        int g = (Y - 0.34414 * U - 0.71414 * V).round().clamp(0, 255);
+        int b = (Y + 1.772 * U).round().clamp(0, 255);
+        img.setPixelRgba(x, y, r, g, b, 255);
+      }
+    }
+  } else {
+    print('ERROR: Unsupported number of planes: ${image.planes.length}');
+    throw Exception('Unsupported image format: ${image.planes.length} planes');
   }
 
+  print('✓ Converted CameraImage to imglib.Image successfully');
+  return img;
+}
   // Crop face from CameraImage
   Future<imglib.Image?> _cropFace(CameraImage image, Face face) async {
     try {
@@ -253,7 +288,8 @@ class _DangKyKhuonMatScreenState extends State<DangKyKhuonMatScreen> {
       if (w <= 0 || h <= 0) return null;
 
       final cropped = imglib.copyCrop(srcImg, x: x, y: y, width: w, height: h);
-      return cropped;
+      final aligned = FaceRegistrationUtil.alignFace(cropped, face);
+      return aligned; // ← 112x112    
     } catch (e) {
       print('Error cropping face: $e');
       return null;
@@ -313,11 +349,12 @@ class _DangKyKhuonMatScreenState extends State<DangKyKhuonMatScreen> {
       print('=== REGISTERING FACE EMBEDDING ===');
       print('Embedding length: ${embedding.length}D');
       print('Embedding sample: ${embedding.sublist(0, math.min(5, embedding.length))}...');
+ 
 
       // Gọi API để lưu FACE_ID - GỬI TRỰC TIẾP List<double>
       final response = await API_Request.api_query('updatefaceid', {
         'EMPL_NO': widget.emplNo,
-        'FACE_ID': embedding, // Gửi List<double> trực tiếp, giống recognizeface
+        'FACE_ID': FaceRegistrationUtil.embeddingToBase64(embedding), // Gửi List<double> trực tiếp, giống recognizeface
       });
 
       print('API response: $response');
