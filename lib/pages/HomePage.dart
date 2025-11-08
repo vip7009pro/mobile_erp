@@ -7,6 +7,7 @@ import 'package:mobile_erp/pages/HomeWidget.dart';
 import 'package:mobile_erp/pages/LoginPage.dart';
 import 'package:mobile_erp/pages/faces/face_recognition_screen.dart';
 import 'package:mobile_erp/pages/faces/face_registration_screen.dart';
+import 'package:mobile_erp/pages/faces/main_screen.dart';
 import 'package:mobile_erp/pages/phongban/kinhdoanh/quan_ly_po.dart';
 import 'package:mobile_erp/pages/phongban/nhansu/BaoCaoNhanSu.dart';
 import 'package:mobile_erp/pages/phongban/nhansu/DangKy.dart';
@@ -300,6 +301,30 @@ void initState() {
                     if (!CheckPermission(c.userData, ['ALL'],
                         ['Manager', 'AM', 'Senior', 'Staff'], ['ALL'], () {
                       Get.to(() => const FaceRecognitionScreen());
+                    })) {
+                      AwesomeDialog(
+                        context: context,
+                        dialogType: DialogType.error,
+                        animType: AnimType.topSlide,
+                        title: 'Cảnh báo',
+                        desc: 'Không đủ quyền hạn!',
+                        btnCancelOnPress: () {},
+                      ).show();
+                    }
+                  },
+                ),                
+                ListTile(
+                  visualDensity: const VisualDensity(vertical: -3),
+                  leading: const FaIcon(
+                    FontAwesomeIcons.check,
+                    color: Colors.green,
+                  ),
+                  title: const Text("Điểm danh camera 3"),
+                  onTap: () {
+                    //action on press
+                    if (!CheckPermission(c.userData, ['ALL'],
+                        ['Manager', 'AM', 'Senior', 'Staff'], ['ALL'], () {
+                      Get.to(() => const MainScreen());
                     })) {
                       AwesomeDialog(
                         context: context,

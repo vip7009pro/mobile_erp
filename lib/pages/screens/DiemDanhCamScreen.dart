@@ -35,7 +35,7 @@ class _DiemDanhCamScreenState extends State<DiemDanhCamScreen> {
   Color _statusColor = Colors.blue;
   
   DateTime? _lastDetectionTime;
-  final int _detectionCooldownSeconds = 3;
+  final int _detectionCooldownSeconds = 1;
 
   @override
   void initState() {

@@ -132,6 +132,12 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
     required String emplNo,
     required String remark,
   }) async {
+    if(mCode == ""){
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vật liệu không hợp lệ!')),
+      );
+      return false;
+    }
     final res = await API_Request.api_query('registerDTCTest', {   
       'DTC_ID': dtcId,
       'TEST_CODE': testItemCode,
@@ -247,21 +253,25 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
           materialName = res['data'][0]['M_NAME'];
           materialSize = res['data'][0]['WIDTH_CD'].toString();
           mCode = res['data'][0]['M_CODE'];
+          print ('mCode: ' + mCode!);
           cUST_CD = res['data'][0]['CUST_CD'];
           _loadTestedItemsByM_CODE(mCode!);
           //print('materialName' + materialName!);
           //print('materialSize' + materialSize!);
+          
         });
       } else {
         setState(() {
           materialName = null;
           materialSize = null;
+          mCode = "";
         });
       }
     } else {
       setState(() {
         materialName = null;
         materialSize = null;
+        mCode = "";
       });
     }
   }
@@ -417,6 +427,7 @@ class _ReliabilityTestRegistrationFormState extends State<ReliabilityTestRegistr
                 nqCheckRoll: 0,
                 dtcId: dtcId,
               );
+        mCode = "";
       }
         AwesomeDialog(
         context: context,
